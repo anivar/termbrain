@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Quick launcher for Gemini with Termbrain context
+
+# Generate fresh context
+echo "🧠 Generating Termbrain context for Gemini..."
+tb ai "${1:-recent work}" gemini
+
+# Check if context was created
+if [[ -f ".gemini-context.md" ]]; then
+    echo "✅ Context ready!"
+    echo ""
+    echo "📝 Starting Gemini. Use these commands:"
+    echo "   @.gemini-context.md  - Include your Termbrain context"
+    echo "   !tb stats           - Check your stats"
+    echo "   !tb learn           - See patterns"
+    echo ""
+    
+    # Launch Gemini
+    if command -v gemini &> /dev/null; then
+        gemini
+    else
+        echo "❌ Gemini CLI not found. Install with:"
+        echo "   npm install -g @google/gemini-cli"
+    fi
+else
+    echo "❌ Failed to generate context"
+fi
