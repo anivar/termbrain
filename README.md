@@ -4,7 +4,6 @@
 
 ### The Terminal That Never Forgets
 
-[![npm version](https://badge.fury.io/js/termbrain.svg)](https://www.npmjs.com/package/termbrain)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub stars](https://img.shields.io/github/stars/anivar/termbrain)](https://github.com/anivar/termbrain/stargazers)
 [![Tests](https://github.com/anivar/termbrain/actions/workflows/test.yml/badge.svg)](https://github.com/anivar/termbrain/actions/workflows/test.yml)
@@ -31,24 +30,23 @@
 🤖 **AI Context** - One command generates perfect context for Claude, Cursor, or Copilot  
 📊 **Analytics** - Understand your development patterns and productivity metrics  
 🔒 **Privacy First** - Everything stays local on your machine, you own your data  
-⚡ **Zero Config** - Works out of the box with bash and zsh  
+⚡ **Easy Setup** - Simple installation for bash and zsh  
 🎯 **Smart Patterns** - Detects your workflow patterns and common sequences  
 
 ## 🚀 Quick Start
 
-### Install via Git (Currently the only method)
+### Install via Git
 ```bash
 git clone https://github.com/anivar/termbrain.git
 cd termbrain
 ./install.sh
 ```
 
-<!-- NPM and Homebrew support coming soon -->
+### Prerequisites
+- SQLite3 and jq (installed automatically on most systems)
+- fzf (optional but recommended for search functionality)
 
-### Install via curl
-```bash
-curl -sSL https://raw.githubusercontent.com/anivar/termbrain/main/install.sh | bash
-```
+<!-- NPM and Homebrew support coming soon -->
 
 ### Manual Installation
 ```bash

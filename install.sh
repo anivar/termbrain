@@ -162,7 +162,28 @@ EOF
 cat > "$TERMBRAIN_HOME/bin/tb-wrapper" << 'EOF'
 #!/usr/bin/env bash
 # Wrapper for termbrain commands
+export TERMBRAIN_HOME="${TERMBRAIN_HOME:-$HOME/.termbrain}"
+export TERMBRAIN_DB="$TERMBRAIN_HOME/data/termbrain.db"
+
+# Source core
 source "$TERMBRAIN_HOME/bin/termbrain"
+
+# Initialize database if needed
+[[ ! -f "$TERMBRAIN_DB" ]] && tb::init_db >/dev/null 2>&1
+
+# Load enhanced features if available
+if [[ -f "$TERMBRAIN_HOME/lib/termbrain-enhanced.sh" ]]; then
+    source "$TERMBRAIN_HOME/lib/termbrain-enhanced.sh"
+    tb::init_enhanced_db >/dev/null 2>&1
+fi
+
+# Load cognitive features if available
+if [[ -f "$TERMBRAIN_HOME/lib/termbrain-cognitive.sh" ]]; then
+    source "$TERMBRAIN_HOME/lib/termbrain-cognitive.sh"
+    tb::init_cognitive >/dev/null 2>&1
+fi
+
+# Run command
 tb::main "$@"
 EOF
 chmod +x "$TERMBRAIN_HOME/bin/tb-wrapper"

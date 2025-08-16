@@ -127,7 +127,7 @@ tb::preexec() {
         ")
         
         # Async pattern detection
-        (tb::detect_patterns "$cmd" &)
+        # (tb::detect_patterns "$cmd" &)  # TODO: Implement pattern detection
     fi
 }
 
@@ -236,7 +236,10 @@ tb::check_sensitive() {
 }
 
 tb::escape_sql() {
+    # Escape single quotes by doubling them (SQLite standard)
     echo "$1" | sed "s/'/''/g"
+    # Note: For production use, consider using parameterized queries
+    # or switching to a language with proper SQL bindings
 }
 
 # ============================================
