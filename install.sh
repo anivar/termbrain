@@ -188,25 +188,8 @@ tb::main "$@"
 EOF
 chmod +x "$TERMBRAIN_HOME/bin/tb-wrapper"
 
-# Update main termbrain script to use wrapper when not sourced
-# Remove last line if it exists (compatibility)
-if [[ -f "$TERMBRAIN_HOME/bin/termbrain" ]]; then
-    # Use portable sed syntax
-    if [[ "$OS_TYPE" == "Mac" ]]; then
-        sed -i '' -e '$ d' "$TERMBRAIN_HOME/bin/termbrain" 2>/dev/null || true
-    else
-        sed -i '$ d' "$TERMBRAIN_HOME/bin/termbrain" 2>/dev/null || true
-    fi
-    
-    # Add proper ending
-    cat >> "$TERMBRAIN_HOME/bin/termbrain" << 'EOF'
-
-# If run directly (not sourced)
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    tb::main "$@"
-fi
-EOF
-fi
+# Note: The main termbrain script already has the correct ending,
+# so we don't need to modify it during installation
 
 # Initialize database
 echo ""
