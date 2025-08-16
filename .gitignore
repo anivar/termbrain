@@ -1,0 +1,102 @@
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor directories and files
+.idea
+.vscode
+*.swp
+*.swo
+*~
+.project
+.settings
+.classpath
+.c9/
+
+# Termbrain specific
+*.db
+*.db-journal
+*.db-wal
+.termbrain/
+termbrain.log
+termbrain-debug.log
+
+# Test artifacts
+test-*.db
+coverage/
+.nyc_output/
+test-results/
+
+# Build artifacts
+dist/
+build/
+*.tar.gz
+*.zip
+
+# Local development
+.env
+.env.local
+.env.*.local
+local-test/
+scratch/
+
+# AI context files (user generated)
+.claude.md
+.cursorrules
+.ai-context.md
+.github/copilot-instructions.md
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+tmp/
+temp/
+
+# Cache directories
+cache/
+.cache/
+
+# Export files (contain user data)
+exports/
+termbrain-export-*
+
+# Node modules (if npm used for distribution)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Documentation build
+docs/_build/
+docs/_site/
+site/
+
+# Logs
+logs/
+*.log
+
+# Security
+*.pem
+*.key
+*.cert
+*.crt
+
+# macOS
+.AppleDouble
+.LSOverride
+Icon
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*

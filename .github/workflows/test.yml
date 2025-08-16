@@ -1,0 +1,133 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run tests every Monday at 9am UTC
+    - cron: '0 9 * * 1'
+
+jobs:
+  test:
+    name: Test on ${{ matrix.os }} with ${{ matrix.shell }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        shell: [bash, zsh]
+        exclude:
+          # Zsh on Ubuntu requires additional setup
+          - os: ubuntu-latest
+            shell: zsh
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup shell environment
+      run: |
+        if [ "${{ matrix.shell }}" = "zsh" ]; then
+          brew install zsh
+        fi
+
+    - name: Install dependencies
+      run: |
+        if [ "${{ runner.os }}" = "Linux" ]; then
+          sudo apt-get update
+          sudo apt-get install -y sqlite3 jq fzf
+        elif [ "${{ runner.os }}" = "macOS" ]; then
+          brew install sqlite jq fzf
+        fi
+
+    - name: Show versions
+      run: |
+        echo "OS: ${{ runner.os }}"
+        echo "Shell: ${{ matrix.shell }}"
+        ${{ matrix.shell }} --version
+        sqlite3 --version
+        jq --version
+
+    - name: Run installation
+      run: |
+        export SHELL=/bin/${{ matrix.shell }}
+        ./install.sh
+
+    - name: Run core tests
+      run: |
+        ${{ matrix.shell }} tests/test_core.sh
+
+    - name: Run enhanced tests
+      run: |
+        ${{ matrix.shell }} tests/test_enhanced.sh
+
+    - name: Run cognitive tests
+      run: |
+        ${{ matrix.shell }} tests/test_cognitive.sh
+
+    - name: Run integration tests
+      run: |
+        ${{ matrix.shell }} tests/test_integration.sh
+
+    - name: Run all tests
+      run: |
+        ${{ matrix.shell }} tests/run_all_tests.sh
+
+  shellcheck:
+    name: Shell Linting
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run ShellCheck
+      uses: ludeeus/action-shellcheck@master
+      with:
+        scandir: './src'
+        additional_files: 'install.sh uninstall.sh tests/*.sh'
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Trivy security scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+  compatibility:
+    name: Compatibility Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Check POSIX compliance
+      run: |
+        # Check for non-POSIX constructs
+        ! grep -r '<<<' src/ || echo "Warning: Here-strings found (not POSIX)"
+        ! grep -r '\[\[' src/ || echo "Note: [[ ]] found (bash/zsh specific)"
+        ! grep -r 'function.*()' src/ || echo "Warning: function keyword used"
+
+    - name: Check minimum shell versions
+      run: |
+        # Document minimum versions
+        echo "Minimum shell versions:"
+        echo "- Bash 4.0+"
+        echo "- Zsh 5.0+"

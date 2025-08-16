@@ -1,0 +1,84 @@
+{
+  "name": "termbrain",
+  "version": "1.0.0",
+  "description": "🧠 The terminal that never forgets - Living memory for your command line",
+  "keywords": [
+    "terminal",
+    "memory",
+    "ai",
+    "context",
+    "claude",
+    "productivity",
+    "cli",
+    "brain",
+    "command-line",
+    "shell",
+    "bash",
+    "zsh",
+    "automation",
+    "workflow",
+    "developer-tools"
+  ],
+  "homepage": "https://github.com/anivar/termbrain",
+  "bugs": {
+    "url": "https://github.com/anivar/termbrain/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anivar/termbrain.git"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Anivar Aravind",
+    "url": "https://github.com/anivar"
+  },
+  "main": "src/termbrain.sh",
+  "bin": {
+    "termbrain-install": "./install.sh"
+  },
+  "files": [
+    "src/",
+    "lib/",
+    "providers/",
+    "docs/",
+    "tests/",
+    "install.sh",
+    "uninstall.sh",
+    "LICENSE",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "test": "bash tests/run_all_tests.sh",
+    "test:core": "bash tests/test_core.sh",
+    "test:enhanced": "bash tests/test_enhanced.sh",
+    "test:cognitive": "bash tests/test_cognitive.sh",
+    "test:integration": "bash tests/test_integration.sh",
+    "test:quick": "bash tests/quick_test.sh",
+    "install": "bash install.sh",
+    "uninstall": "bash uninstall.sh",
+    "lint": "shellcheck src/*.sh lib/*.sh tests/*.sh",
+    "format": "shfmt -i 4 -w src/*.sh lib/*.sh tests/*.sh",
+    "release": "bash scripts/release.sh"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "os": [
+    "darwin",
+    "linux"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
+  "preferGlobal": true,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/anivar"
+  }
+}
