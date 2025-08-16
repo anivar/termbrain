@@ -18,18 +18,12 @@ Welcome to Termbrain! This guide will help you install and start using Termbrain
 - **Shell**: Bash 4.0+ or Zsh 5.0+
 - **Dependencies**: SQLite 3, jq (installed automatically)
 
-### Install via NPM (Recommended)
+### Install via Git
 
 ```bash
-npm install -g termbrain
-termbrain-install
-```
-
-### Install via Homebrew (macOS)
-
-```bash
-brew tap anivar/tap
-brew install termbrain
+git clone https://github.com/anivar/termbrain.git
+cd termbrain
+./install.sh
 ```
 
 ### Install via curl
@@ -122,15 +116,13 @@ $ npm start           # Works now!
 
 Termbrain automatically learns that `npm install express` fixed the error.
 
-### Set Intentions
-
-Track what you're working on:
+### Learn Your Patterns
 
 ```bash
-tb-intend "implement user authentication"
-# ... work on the feature ...
-tb-achieved
+tb learn
 ```
+
+Discover repeated command sequences and workflow patterns.
 
 ## AI Integration
 
@@ -244,25 +236,6 @@ tb-achieved
 
 ## Next Steps
 
-### Explore Advanced Features
-
-1. **Enhanced Memory Layer**
-   ```bash
-   tb-arch "using microservices"  # Document architecture decisions
-   tb-why                         # Explain why you ran a command
-   ```
-
-2. **Cognitive Features**
-   ```bash
-   tb-flow start    # Enter flow state
-   tb-growth        # View learning metrics
-   tb-suggest       # Get personalized suggestions
-   ```
-
-3. **Memory Browser**
-   ```bash
-   tb-explore       # Interactive memory explorer
-   ```
 
 ### Customize Termbrain
 

@@ -22,9 +22,7 @@
 
 **Termbrain gives your terminal a photographic memory.** It remembers every command, learns from your mistakes, and automatically provides context to AI assistants. No more explaining your project setup every time you need help.
 
-<div align="center">
-  <img src="docs/images/demo.gif" alt="Termbrain Demo" width="800">
-</div>
+<!-- Demo GIF coming soon -->
 
 ## ✨ Features
 
@@ -34,22 +32,18 @@
 📊 **Analytics** - Understand your development patterns and productivity metrics  
 🔒 **Privacy First** - Everything stays local on your machine, you own your data  
 ⚡ **Zero Config** - Works out of the box with bash and zsh  
-🎯 **Cognitive Layer** - Track intentions, learn from patterns, measure productivity  
-📚 **Knowledge Base** - Automatically builds a personal knowledge base from your experience  
+🎯 **Smart Patterns** - Detects your workflow patterns and common sequences  
 
 ## 🚀 Quick Start
 
-### Install via npm (Recommended)
+### Install via Git (Currently the only method)
 ```bash
-npm install -g termbrain
-termbrain-install
+git clone https://github.com/anivar/termbrain.git
+cd termbrain
+./install.sh
 ```
 
-### Install via Homebrew (macOS)
-```bash
-brew tap anivar/tap
-brew install termbrain
-```
+<!-- NPM and Homebrew support coming soon -->
 
 ### Install via curl
 ```bash
@@ -83,21 +77,7 @@ tb stats
 # See command usage patterns, error rates, and productivity metrics
 ```
 
-### Track Your Intentions
-```bash
-tb-intend "implement user authentication"
-# ... work on the feature ...
-tb-achieved
-# Termbrain learns from your approach
-```
-
-### Enter Flow State
-```bash
-tb-flow start
-# ... deep work session ...
-tb-flow end
-# Track productivity and interruptions
-```
+<!-- Advanced features coming in v2.0 -->
 
 ## 🤯 Real-World Examples
 
@@ -166,13 +146,12 @@ tb stats
 
 ## 🏗️ Architecture
 
-Termbrain consists of three progressive layers:
+Termbrain uses a simple yet powerful architecture:
 
-1. **Core Layer** - Command capture, semantic analysis, error tracking
-2. **Enhanced Layer** - Concepts, reasoning, project memory
-3. **Cognitive Layer** - Intentions, knowledge extraction, mental models
-
-Each layer builds on the previous one, providing increasingly sophisticated memory capabilities.
+- **Shell Hooks** - Captures commands using preexec/precmd
+- **SQLite Database** - Fast, reliable local storage
+- **Semantic Analysis** - Understands command types and context
+- **AI Integration** - Generates context files for various AI tools
 
 [Read more about the architecture →](docs/architecture.md)
 
@@ -189,9 +168,7 @@ Each layer builds on the previous one, providing increasingly sophisticated memo
 
 - [Getting Started](docs/getting-started.md)
 - [Architecture](docs/architecture.md)
-- [Privacy Guide](docs/privacy.md)
-- [API Reference](docs/api.md)
-- [Examples](docs/examples/)
+- [Contributing Guide](CONTRIBUTING.md)
 
 ## 🤝 Contributing
 
@@ -207,13 +184,14 @@ Please read our [Contributing Guide](CONTRIBUTING.md) and [Code of Conduct](CODE
 ## 📊 Project Status
 
 - ✅ Core memory system
-- ✅ Enhanced conceptual layer
-- ✅ Cognitive tracking
+- ✅ Command capture and analysis
+- ✅ Error tracking and learning
+- ✅ AI context generation
 - ✅ Multi-shell support (bash, zsh)
-- 🚧 Fish shell support
-- 🚧 Windows support
-- 📋 Cloud sync (planned)
-- 📋 Team sharing (planned)
+- 📋 Enhanced memory features (planned for v2.0)
+- 📋 NPM/Homebrew packages (coming soon)
+- 📋 Fish shell support (planned)
+- 📋 Windows support (planned)
 
 ## 🙏 Acknowledgments
 

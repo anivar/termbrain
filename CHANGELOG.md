@@ -29,24 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Workflow pattern discovery
 
 - 🤖 **AI Integration**
-  - Context generation for Claude, Cursor, and GitHub Copilot
-  - Provider-specific file formats (.claude.md, .cursorrules, etc.)
-  - Rich context including commands, errors, solutions, and patterns
-
-- 📚 **Enhanced Memory Layer**
-  - High-level concept capture (architecture, decisions, learning)
-  - Reasoning documentation
-  - Project-level memory management
-  - Memory links between commands and concepts
-  - Interactive memory explorer UI
-
-- 🎯 **Cognitive Layer**
-  - Intention tracking (set goals, track achievements)
-  - Automatic knowledge extraction
-  - Mental model detection
-  - Flow state tracking
-  - Productivity metrics
-  - Personalized suggestions
+  - Context generation for AI assistants
+  - Creates .ai-context.md file with relevant history
+  - Provider-specific file naming (experimental)
 
 - 🛡️ **Privacy & Security**
   - 100% local storage
@@ -61,17 +46,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Cross-platform (macOS, Linux)
 
 - 📦 **Distribution**
-  - NPM package
-  - Homebrew formula (planned)
+  - Git-based installation
   - Automated installer script
-  - Comprehensive test suite
+  - Basic test suite
 
 ### Technical Details
 - SQLite-based storage for reliability and performance
-- Modular architecture with progressive enhancement
-- Zero external dependencies (only sqlite3 and jq required)
-- Extensive test coverage (33+ test cases)
-- Well-documented codebase
+- Simple architecture with room for growth
+- Minimal dependencies (sqlite3 and jq required)
+- Test framework included
+- Documentation included
 
 ### Known Issues
 - Fish shell support not yet implemented

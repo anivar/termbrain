@@ -266,6 +266,27 @@ test_full_workflow() {
     rm -f .ai-context.md
 }
 
+test_provider_system() {
+    test_start "Provider system"
+    
+    # Test that providers directory exists
+    assert_file_exists "$TERMBRAIN_HOME/providers/claude.sh" "Claude provider exists"
+    assert_file_exists "$TERMBRAIN_HOME/providers/cursor.sh" "Cursor provider exists"
+    assert_file_exists "$TERMBRAIN_HOME/providers/copilot.sh" "Copilot provider exists"
+}
+
+test_lib_structure() {
+    test_start "Library structure"
+    
+    # Test that lib files exist
+    assert_file_exists "$TERMBRAIN_HOME/lib/termbrain-enhanced.sh" "Enhanced features exist"
+    assert_file_exists "$TERMBRAIN_HOME/lib/termbrain-cognitive.sh" "Cognitive features exist"
+    assert_file_exists "$TERMBRAIN_HOME/lib/capture.sh" "Capture lib exists"
+    assert_file_exists "$TERMBRAIN_HOME/lib/semantic.sh" "Semantic lib exists"
+    assert_file_exists "$TERMBRAIN_HOME/lib/patterns.sh" "Patterns lib exists"
+    assert_file_exists "$TERMBRAIN_HOME/lib/safety.sh" "Safety lib exists"
+}
+
 # ============================================
 # RUN TESTS
 # ============================================
@@ -287,6 +308,8 @@ test_error_workflow
 test_privacy_features
 test_export_functionality
 test_full_workflow
+test_provider_system
+test_lib_structure
 
 # Teardown
 teardown

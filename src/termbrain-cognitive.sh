@@ -535,5 +535,5 @@ if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
     fi
     
     echo "🧠✨ Termbrain Cognitive Layer Active"
-    echo "Track intentions: tb-intend | Enter flow: tb-flow start"
+    echo "New commands: tb intend, tb achieved, tb flow, tb growth"
 fi

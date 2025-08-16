@@ -601,5 +601,5 @@ if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
     tb::init_enhanced_db
     
     echo "🧠✨ Termbrain Enhanced Mode Active"
-    echo "New commands: tb-why, tb-arch, tb-explore"
+    echo "New commands: tb why, tb arch, tb explore, tb project"
 fi

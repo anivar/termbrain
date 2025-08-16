@@ -32,10 +32,7 @@
     "name": "Anivar Aravind",
     "url": "https://github.com/anivar"
   },
-  "main": "src/termbrain.sh",
-  "bin": {
-    "termbrain-install": "./install.sh"
-  },
+  "main": "install.sh",
   "files": [
     "src/",
     "lib/",

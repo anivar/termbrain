@@ -487,23 +487,31 @@ tb::help() {
     cat << 'EOF'
 🧠 Termbrain - The Terminal That Never Forgets
 
-Commands:
-  tb ai [query]     Generate AI context for any topic
-  tb search         Search through your command history
-  tb stats          View your terminal analytics
-  tb learn          Discover patterns in your workflow
-  tb privacy        Manage privacy settings
-  tb help           Show this help message
+Core Commands:
+  tb ai [query] [provider]  Generate AI context (providers: claude, cursor, copilot)
+  tb search                 Search through your command history
+  tb stats                  View your terminal analytics
+  tb learn                  Discover patterns in your workflow
+  tb privacy                Manage privacy settings
+  tb help                   Show this help message
 
-Shortcuts:
-  tb-ai             Quick alias for 'tb ai'
-  tb-search         Quick alias for 'tb search'
-  tb-stats          Quick alias for 'tb stats'
+Enhanced Commands (if enabled):
+  tb why                    Explain why you ran the last command
+  tb arch [title] [desc]    Document architectural decisions
+  tb explore                Interactive memory explorer
+  tb project [action]       Manage project contexts
+
+Cognitive Commands (if enabled):
+  tb intend [goal]          Set your current intention
+  tb achieved               Mark intention complete and capture learnings
+  tb flow [start|end|status] Track flow state and productivity
+  tb growth                 View your learning journey
 
 Examples:
-  tb ai "docker optimization"    # Get Docker context for AI
-  tb search                      # Interactive command search  
-  tb stats                       # See your productivity metrics
+  tb ai "docker help" claude     # Get Docker context for Claude
+  tb intend "add user auth"      # Set intention
+  tb why                         # Document reasoning
+  tb flow start                  # Enter flow state
 
 More info: https://github.com/anivar/termbrain
 EOF
@@ -582,7 +590,16 @@ tb::main() {
             ;;
         ai)
             shift
-            tb::ai "$@"
+            # Load provider if specified
+            local query="${1:-general}"
+            local provider="${2:-universal}"
+            
+            if [[ -f "$TERMBRAIN_HOME/providers/${provider}.sh" ]]; then
+                source "$TERMBRAIN_HOME/providers/${provider}.sh"
+                tb::${provider}_export ".${provider}-context.md" "$query"
+            else
+                tb::ai "$@"
+            fi
             ;;
         search)
             tb::search
@@ -599,12 +616,75 @@ tb::main() {
         help|--help|-h)
             tb::help
             ;;
+        # Enhanced commands
+        why)
+            if command -v tb::why &>/dev/null; then
+                tb::why
+            else
+                echo "Enhanced features not loaded. Source termbrain-enhanced.sh"
+            fi
+            ;;
+        arch)
+            if command -v tb::arch &>/dev/null; then
+                shift
+                tb::arch "$@"
+            else
+                echo "Enhanced features not loaded. Source termbrain-enhanced.sh"
+            fi
+            ;;
+        explore)
+            if command -v tb::explore &>/dev/null; then
+                tb::explore
+            else
+                echo "Enhanced features not loaded. Source termbrain-enhanced.sh"
+            fi
+            ;;
+        project)
+            if command -v tb::project &>/dev/null; then
+                shift
+                tb::project "$@"
+            else
+                echo "Enhanced features not loaded. Source termbrain-enhanced.sh"
+            fi
+            ;;
+        # Cognitive commands
+        intend)
+            if command -v tb::intend &>/dev/null; then
+                shift
+                tb::intend "$@"
+            else
+                echo "Cognitive features not loaded. Source termbrain-cognitive.sh"
+            fi
+            ;;
+        achieved)
+            if command -v tb::achieved &>/dev/null; then
+                tb::achieved
+            else
+                echo "Cognitive features not loaded. Source termbrain-cognitive.sh"
+            fi
+            ;;
+        flow)
+            if command -v tb::flow &>/dev/null; then
+                shift
+                tb::flow "$@"
+            else
+                echo "Cognitive features not loaded. Source termbrain-cognitive.sh"
+            fi
+            ;;
+        growth)
+            if command -v tb::growth &>/dev/null; then
+                tb::growth
+            else
+                echo "Cognitive features not loaded. Source termbrain-cognitive.sh"
+            fi
+            ;;
         "")
             # If sourced, set up hooks
             if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
                 tb::setup_hooks
                 
                 # Create convenient aliases
+                alias tb='tb'
                 alias tb-ai='tb ai'
                 alias tb-search='tb search'
                 alias tb-stats='tb stats'
@@ -612,6 +692,16 @@ tb::main() {
                 
                 # Initialize database if needed
                 [[ ! -f "$TERMBRAIN_DB" ]] && tb::init_db
+                
+                # Load enhanced features if available
+                if [[ -f "$TERMBRAIN_HOME/lib/termbrain-enhanced.sh" ]]; then
+                    source "$TERMBRAIN_HOME/lib/termbrain-enhanced.sh"
+                fi
+                
+                # Load cognitive features if available
+                if [[ -f "$TERMBRAIN_HOME/lib/termbrain-cognitive.sh" ]]; then
+                    source "$TERMBRAIN_HOME/lib/termbrain-cognitive.sh"
+                fi
                 
                 # Show session start
                 local total_cmds=$(sqlite3 "$TERMBRAIN_DB" "SELECT COUNT(*) FROM commands;" 2>/dev/null || echo 0)
