@@ -33,6 +33,45 @@
 ⚡ **Easy Setup** - Simple installation for bash and zsh  
 🎯 **Smart Patterns** - Detects your workflow patterns and common sequences  
 
+## 🏗️ System Overview
+
+Termbrain uses a three-layer architecture to provide progressive enhancement:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Your Terminal Session                    │
+├─────────────────────────────────────────────────────────────┤
+│                 Shell Hooks (preexec/precmd)                 │
+├─────────────────────────────────────────────────────────────┤
+│                    🧠 TERMBRAIN CORE                         │
+│  • Command capture & categorization                          │
+│  • Error tracking & solution learning                        │
+│  • Pattern detection & workflow analysis                     │
+├─────────────────────────────────────────────────────────────┤
+│                   ✨ ENHANCED LAYER                          │
+│  • Conceptual reasoning (tb why)                             │
+│  • Architecture decisions (tb arch)                          │
+│  • Project memory & context switching                        │
+├─────────────────────────────────────────────────────────────┤
+│                   🎯 COGNITIVE LAYER                         │
+│  • Intention tracking & achievement logging                  │
+│  • Knowledge extraction & connections                        │
+│  • Mental models & productivity insights                     │
+├─────────────────────────────────────────────────────────────┤
+│                   💾 SQLite Database                         │
+│         Local storage with 15 specialized tables             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Key Components:**
+- **Shell Integration**: Seamless capture via bash/zsh hooks
+- **Semantic Engine**: Understands git vs docker vs npm commands
+- **Learning System**: Tracks errors and their solutions automatically
+- **AI Providers**: Native integrations for Claude, Cursor, and Copilot
+- **Privacy Layer**: All data local, with automatic sensitive data detection
+
+[Read the full architecture documentation →](docs/architecture.md)
+
 ## 🚀 Quick Start
 
 ### Install via Git
