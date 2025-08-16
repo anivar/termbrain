@@ -99,7 +99,7 @@ fi
 # Create symlinks
 echo ""
 echo "🔗 Creating command shortcuts..."
-ln -sf "$TERMBRAIN_HOME/bin/termbrain" "$TERMBRAIN_HOME/bin/tb"
+ln -sf "$TERMBRAIN_HOME/bin/tb-wrapper" "$TERMBRAIN_HOME/bin/tb"
 
 # Add to PATH
 mkdir -p "$HOME/.local/bin"
@@ -189,14 +189,24 @@ EOF
 chmod +x "$TERMBRAIN_HOME/bin/tb-wrapper"
 
 # Update main termbrain script to use wrapper when not sourced
-sed -i.bak '$ d' "$TERMBRAIN_HOME/bin/termbrain"
-cat >> "$TERMBRAIN_HOME/bin/termbrain" << 'EOF'
+# Remove last line if it exists (compatibility)
+if [[ -f "$TERMBRAIN_HOME/bin/termbrain" ]]; then
+    # Use portable sed syntax
+    if [[ "$OS_TYPE" == "Mac" ]]; then
+        sed -i '' -e '$ d' "$TERMBRAIN_HOME/bin/termbrain" 2>/dev/null || true
+    else
+        sed -i '$ d' "$TERMBRAIN_HOME/bin/termbrain" 2>/dev/null || true
+    fi
+    
+    # Add proper ending
+    cat >> "$TERMBRAIN_HOME/bin/termbrain" << 'EOF'
 
 # If run directly (not sourced)
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     tb::main "$@"
 fi
 EOF
+fi
 
 # Initialize database
 echo ""
