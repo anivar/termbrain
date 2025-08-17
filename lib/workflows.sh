@@ -150,6 +150,7 @@ tb::workflow_run() {
         sqlite3 "$TERMBRAIN_DB" "UPDATE workflows SET times_used = times_used + 1, success_rate = (success_rate * times_used) / (times_used + 1) WHERE id = $wf_id;"
         echo ""
         echo "❌ Workflow failed"
+        return 1
     fi
 }
 

@@ -74,6 +74,16 @@ jobs:
     - name: Run all tests
       run: |
         ${{ matrix.shell }} tests/run_all_tests.sh
+    
+    - name: Test workflow features
+      run: |
+        export PATH="$HOME/.termbrain/bin:$PATH"
+        source ~/.termbrain/bin/termbrain
+        
+        # Test workflow creation with quotes
+        tb workflow create test-quotes "Test quotes" "echo 'Hello World'" "echo \"It's working\""
+        tb workflow run test-quotes
+        tb workflow delete test-quotes
 
   shellcheck:
     name: Shell Linting
