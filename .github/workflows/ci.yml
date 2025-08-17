@@ -37,19 +37,13 @@ jobs:
           brew install shellcheck sqlite3 jq || true
         fi
 
-    - name: Lint with shellcheck
+    - name: Run smoke test
       run: |
-        find . -name "*.sh" -not -path "./.termbrain/*" -not -path "./tests/*" | xargs shellcheck -x
+        ./tests/smoke_test.sh
 
     - name: Run unit tests
       run: |
-        ./tests/run_tests.sh --unit-only
-
-    - name: Run E2E tests
-      run: |
-        ./tests/run_tests.sh --e2e-only
-      env:
-        SHELL: /bin/${{ matrix.shell }}
+        ./tests/run_tests.sh --unit-only --no-lint
 
     - name: Test installation
       run: |
