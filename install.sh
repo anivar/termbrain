@@ -78,17 +78,21 @@ echo "📥 Installing Termbrain..."
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Copy main script
-cp "$SCRIPT_DIR/src/termbrain.sh" "$TERMBRAIN_HOME/bin/termbrain"
+cp "$SCRIPT_DIR/bin/termbrain" "$TERMBRAIN_HOME/bin/termbrain"
 chmod +x "$TERMBRAIN_HOME/bin/termbrain"
 
-# Copy enhanced versions
-cp "$SCRIPT_DIR/src/termbrain-enhanced.sh" "$TERMBRAIN_HOME/lib/"
-cp "$SCRIPT_DIR/src/termbrain-cognitive.sh" "$TERMBRAIN_HOME/lib/"
+# Copy enhanced versions (if they exist)
+if [[ -f "$SCRIPT_DIR/src/termbrain-enhanced.sh" ]]; then
+    cp "$SCRIPT_DIR/src/termbrain-enhanced.sh" "$TERMBRAIN_HOME/lib/"
+fi
+if [[ -f "$SCRIPT_DIR/src/termbrain-cognitive.sh" ]]; then
+    cp "$SCRIPT_DIR/src/termbrain-cognitive.sh" "$TERMBRAIN_HOME/lib/"
+fi
 
-# Copy lib files
+# Copy lib files and directory structure
 if [[ -d "$SCRIPT_DIR/lib" ]]; then
-    cp "$SCRIPT_DIR/lib/"*.sh "$TERMBRAIN_HOME/lib/" 2>/dev/null || true
-    chmod +x "$TERMBRAIN_HOME/lib/"*.sh 2>/dev/null || true
+    cp -r "$SCRIPT_DIR/lib/"* "$TERMBRAIN_HOME/lib/" 2>/dev/null || true
+    find "$TERMBRAIN_HOME/lib/" -name "*.sh" -type f -exec chmod +x {} \; 2>/dev/null || true
 fi
 
 # Copy provider files
