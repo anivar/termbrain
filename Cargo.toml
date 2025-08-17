@@ -1,0 +1,72 @@
+[package]
+name = "termbrain"
+version = "2.0.0-alpha.1"
+edition = "2021"
+authors = ["Anivar <anivar@users.noreply.github.com>"]
+description = "The Terminal That Never Forgets - Your AI-powered command-line memory"
+license = "MIT"
+repository = "https://github.com/anivar/termbrain"
+homepage = "https://github.com/anivar/termbrain"
+readme = "README.md"
+keywords = ["cli", "terminal", "shell", "productivity", "ai"]
+categories = ["command-line-utilities", "development-tools"]
+
+[dependencies]
+# CLI Framework
+clap = { version = "4.5", features = ["derive", "env"] }
+clap_complete = "4.5"
+
+# Async Runtime
+tokio = { version = "1.40", features = ["full"] }
+
+# Database
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "sqlite", "migrate"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+
+# Error Handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Terminal UI
+ratatui = "0.28"
+crossterm = "0.28"
+
+# Utilities
+directories = "5.0"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.10", features = ["v4", "serde"] }
+once_cell = "1.20"
+
+# Shell Integration
+nix = { version = "0.29", features = ["process", "signal"] }
+which = "6.0"
+
+# AI/ML (for future)
+# candle = { version = "0.6", optional = true }
+
+[dev-dependencies]
+tempfile = "3.12"
+pretty_assertions = "1.4"
+mockall = "0.13"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
+opt-level = "z"
+
+[[bin]]
+name = "tb"
+path = "src/main.rs"
+
+[[bin]]
+name = "termbrain"
+path = "src/main.rs"
