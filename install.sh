@@ -88,6 +88,7 @@ cp "$SCRIPT_DIR/src/termbrain-cognitive.sh" "$TERMBRAIN_HOME/lib/"
 # Copy lib files
 if [[ -d "$SCRIPT_DIR/lib" ]]; then
     cp "$SCRIPT_DIR/lib/"*.sh "$TERMBRAIN_HOME/lib/" 2>/dev/null || true
+    chmod +x "$TERMBRAIN_HOME/lib/"*.sh 2>/dev/null || true
 fi
 
 # Copy provider files

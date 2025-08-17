@@ -127,7 +127,7 @@ tb::preexec() {
         ")
         
         # Async pattern detection
-        # (tb::detect_patterns "$cmd" &)  # TODO: Implement pattern detection
+        (tb::detect_patterns >/dev/null 2>&1 &)
     fi
 }
 
@@ -456,33 +456,40 @@ tb::stats() {
 }
 
 tb::learn() {
-    echo "🤖 Learning your patterns..."
-    
-    # Find repeated command sequences
-    local patterns=$(sqlite3 "$TERMBRAIN_DB" "
-        WITH Sequences AS (
-            SELECT 
-                c1.command as cmd1,
-                c2.command as cmd2,
-                COUNT(*) as frequency
-            FROM commands c1
-            JOIN commands c2 ON c2.id = c1.id + 1
-            WHERE c1.session_id = c2.session_id
-            GROUP BY c1.command, c2.command
-            HAVING COUNT(*) > 2
-        )
-        SELECT cmd1, cmd2, frequency FROM Sequences
-        ORDER BY frequency DESC
-        LIMIT 5;
-    ")
-    
-    if [[ -n "$patterns" ]]; then
-        echo "Found repeated patterns:"
-        echo "$patterns" | column -t -s "|"
-        echo ""
-        echo "💡 Consider creating aliases for these workflows!"
+    # Load workflow library if available
+    if [[ -f "$TERMBRAIN_HOME/lib/workflows.sh" ]]; then
+        source "$TERMBRAIN_HOME/lib/workflows.sh"
+        tb::learn_enhanced
     else
-        echo "No significant patterns found yet. Keep using Termbrain!"
+        # Fallback to basic pattern detection
+        echo "🤖 Learning your patterns..."
+        
+        # Find repeated command sequences
+        local patterns=$(sqlite3 "$TERMBRAIN_DB" "
+            WITH Sequences AS (
+                SELECT 
+                    c1.command as cmd1,
+                    c2.command as cmd2,
+                    COUNT(*) as frequency
+                FROM commands c1
+                JOIN commands c2 ON c2.id = c1.id + 1
+                WHERE c1.session_id = c2.session_id
+                GROUP BY c1.command, c2.command
+                HAVING COUNT(*) > 2
+            )
+            SELECT cmd1, cmd2, frequency FROM Sequences
+            ORDER BY frequency DESC
+            LIMIT 5;
+        ")
+        
+        if [[ -n "$patterns" ]]; then
+            echo "Found repeated patterns:"
+            echo "$patterns" | column -t -s "|"
+            echo ""
+            echo "💡 Consider creating workflows with: tb workflow create"
+        else
+            echo "No significant patterns found yet. Keep using Termbrain!"
+        fi
     fi
 }
 
@@ -495,6 +502,7 @@ Core Commands:
   tb search                 Search through your command history
   tb stats                  View your terminal analytics
   tb learn                  Discover patterns in your workflow
+  tb workflow [action]      Manage and automate workflows
   tb privacy                Manage privacy settings
   tb help                   Show this help message
 
@@ -612,6 +620,19 @@ tb::main() {
             ;;
         learn)
             tb::learn
+            ;;
+        workflow)
+            # Load workflow library if needed
+            if [[ -f "$TERMBRAIN_HOME/lib/workflows.sh" ]]; then
+                source "$TERMBRAIN_HOME/lib/workflows.sh"
+                if [[ -f "$TERMBRAIN_HOME/lib/workflow-intelligence.sh" ]]; then
+                    source "$TERMBRAIN_HOME/lib/workflow-intelligence.sh"
+                fi
+                shift
+                tb::workflow "$@"
+            else
+                echo "Workflow features not available. Missing lib/workflows.sh"
+            fi
             ;;
         privacy)
             tb::privacy
