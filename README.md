@@ -4,9 +4,10 @@
 
 ### The Terminal That Never Forgets
 
+[![CI](https://github.com/anivar/termbrain/actions/workflows/ci.yml/badge.svg)](https://github.com/anivar/termbrain/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub stars](https://img.shields.io/github/stars/anivar/termbrain)](https://github.com/anivar/termbrain/stargazers)
-[![Tests](https://github.com/anivar/termbrain/actions/workflows/test.yml/badge.svg)](https://github.com/anivar/termbrain/actions/workflows/test.yml)
+[![GitHub release](https://img.shields.io/github/release/anivar/termbrain.svg)](https://github.com/anivar/termbrain/releases)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 [**Features**](#features) • [**Quick Start**](#quick-start) • [**Demo**](#demo) • [**Docs**](docs/) • [**Contributing**](#contributing)
@@ -87,12 +88,16 @@ cd termbrain
 
 <!-- NPM and Homebrew support coming soon -->
 
-### Manual Installation
+### Uninstallation
 ```bash
-git clone https://github.com/anivar/termbrain.git
 cd termbrain
-./install.sh
+./uninstall.sh
 ```
+
+The uninstaller will:
+- Remove Termbrain from your shell configuration
+- Optionally export your command history before removal
+- Clean up all Termbrain files and directories
 
 ## 🎯 Usage
 

@@ -89,6 +89,15 @@ logs/
 *.cert
 *.crt
 
+# Private files - NEVER commit
+VISION.private.md
+*.private
+*.private.*
+*.secret
+private/
+.private/
+secrets/
+
 # macOS
 .AppleDouble
 .LSOverride

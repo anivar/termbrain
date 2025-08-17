@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+# Termbrain - The Terminal That Never Forgets
+
+export TERMBRAIN_HOME="${TERMBRAIN_HOME:-$HOME/.termbrain}"
+export TERMBRAIN_DB="$TERMBRAIN_HOME/data/termbrain.db"
+
+# Create directory structure
+[[ ! -d "$TERMBRAIN_HOME/data" ]] && mkdir -p "$TERMBRAIN_HOME"/{data,cache,exports,providers}
+
+# Set library path - check if we're in development
+if [[ -f "./lib/presentation/command_router.sh" ]]; then
+    export TERMBRAIN_LIB="./lib"
+    source "./lib/presentation/command_router.sh"
+else
+    export TERMBRAIN_LIB="${TERMBRAIN_HOME}/lib"
+    source "${TERMBRAIN_HOME}/lib/presentation/command_router.sh"
+fi
+
+# Main entry point
+main() {
+    local command="${1:-help}"
+    shift
+    
+    case "$command" in
+        search)
+            CommandRouter::search "$@"
+            ;;
+        stats)
+            CommandRouter::stats "$@"
+            ;;
+        workflow)
+            CommandRouter::workflow "$@"
+            ;;
+        history)
+            CommandRouter::history "$@"
+            ;;
+        type)
+            CommandRouter::type "$@"
+            ;;
+        productivity)
+            CommandRouter::productivity
+            ;;
+        status)
+            CommandRouter::status
+            ;;
+        intend)
+            CommandRouter::intend "$@"
+            ;;
+        achieved)
+            CommandRouter::achieved
+            ;;
+        flow)
+            CommandRouter::flow "$@"
+            ;;
+        growth)
+            CommandRouter::growth
+            ;;
+        suggest)
+            CommandRouter::suggest
+            ;;
+        context)
+            CommandRouter::context "$@"
+            ;;
+        ai)
+            CommandRouter::ai "$@"
+            ;;
+        why)
+            CommandRouter::why "$@"
+            ;;
+        arch)
+            CommandRouter::arch
+            ;;
+        explore)
+            CommandRouter::explore "$@"
+            ;;
+        project)
+            CommandRouter::project
+            ;;
+        export)
+            CommandRouter::export "$@"
+            ;;
+        predictive)
+            CommandRouter::predictive "$@"
+            ;;
+        init)
+            CommandRouter::init
+            ;;
+        disable)
+            CommandRouter::disable
+            ;;
+        enable)
+            CommandRouter::enable
+            ;;
+        help|--help|-h)
+            CommandRouter::help
+            ;;
+        version|--version|-v)
+            if [[ -f "$TERMBRAIN_LIB/../VERSION" ]]; then
+                cat "$TERMBRAIN_LIB/../VERSION"
+            elif [[ -f "${TERMBRAIN_HOME}/VERSION" ]]; then
+                cat "${TERMBRAIN_HOME}/VERSION"
+            else
+                echo "1.0.0"
+            fi
+            ;;
+        "")
+            # If sourced without command, initialize
+            if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
+                CommandRouter::init
+            else
+                CommandRouter::help
+            fi
+            ;;
+        *)
+            echo "Unknown command: $command"
+            echo "Run 'tb help' for usage"
+            return 1
+            ;;
+    esac
+}
+
+# If script is executed directly (not sourced)
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi
