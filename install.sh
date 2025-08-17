@@ -2,11 +2,10 @@
 set -e
 
 # Termbrain Installer
-TERMBRAIN_VERSION="1.0.0"
 TERMBRAIN_HOME="${TERMBRAIN_HOME:-$HOME/.termbrain}"
 
 echo ""
-echo "🧠 Termbrain Installer v${TERMBRAIN_VERSION}"
+echo "🧠 Termbrain Installer"
 echo "=================================="
 echo ""
 
@@ -77,17 +76,12 @@ echo "📥 Installing Termbrain..."
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Copy main script
+# Copy main script and version file
 cp "$SCRIPT_DIR/bin/termbrain" "$TERMBRAIN_HOME/bin/termbrain"
 chmod +x "$TERMBRAIN_HOME/bin/termbrain"
+cp "$SCRIPT_DIR/VERSION" "$TERMBRAIN_HOME/VERSION"
 
-# Copy enhanced versions (if they exist)
-if [[ -f "$SCRIPT_DIR/src/termbrain-enhanced.sh" ]]; then
-    cp "$SCRIPT_DIR/src/termbrain-enhanced.sh" "$TERMBRAIN_HOME/lib/"
-fi
-if [[ -f "$SCRIPT_DIR/src/termbrain-cognitive.sh" ]]; then
-    cp "$SCRIPT_DIR/src/termbrain-cognitive.sh" "$TERMBRAIN_HOME/lib/"
-fi
+# No longer copying old enhanced/cognitive files - they're integrated into clean architecture
 
 # Copy lib files and directory structure
 if [[ -d "$SCRIPT_DIR/lib" ]]; then
@@ -151,9 +145,11 @@ cat > "$TERMBRAIN_HOME/init.sh" << 'EOF'
 #!/usr/bin/env bash
 # Termbrain initialization
 
-# Load main module
+# Initialize termbrain when shell starts
 if [[ -f "$TERMBRAIN_HOME/bin/termbrain" ]]; then
     source "$TERMBRAIN_HOME/bin/termbrain"
+    # Auto-initialize on shell start
+    [[ "${BASH_SOURCE[0]}" != "${0}" ]] && CommandRouter::init >/dev/null 2>&1
 fi
 
 # Welcome message (only show once per session)
@@ -173,23 +169,12 @@ export TERMBRAIN_DB="$TERMBRAIN_HOME/data/termbrain.db"
 # Source core
 source "$TERMBRAIN_HOME/bin/termbrain"
 
-# Initialize database if needed
-[[ ! -f "$TERMBRAIN_DB" ]] && tb::init_db >/dev/null 2>&1
+# Initialize database is handled by the main script
 
-# Load enhanced features if available
-if [[ -f "$TERMBRAIN_HOME/lib/termbrain-enhanced.sh" ]]; then
-    source "$TERMBRAIN_HOME/lib/termbrain-enhanced.sh"
-    tb::init_enhanced_db >/dev/null 2>&1
-fi
-
-# Load cognitive features if available
-if [[ -f "$TERMBRAIN_HOME/lib/termbrain-cognitive.sh" ]]; then
-    source "$TERMBRAIN_HOME/lib/termbrain-cognitive.sh"
-    tb::init_cognitive >/dev/null 2>&1
-fi
+# Enhanced and cognitive features are now integrated into the main termbrain
 
 # Run command
-tb::main "$@"
+main "$@"
 EOF
 chmod +x "$TERMBRAIN_HOME/bin/tb-wrapper"
 
@@ -199,7 +184,7 @@ chmod +x "$TERMBRAIN_HOME/bin/tb-wrapper"
 # Initialize database
 echo ""
 echo "🗄️  Initializing memory database..."
-"$TERMBRAIN_HOME/bin/tb-wrapper" --init-db
+"$TERMBRAIN_HOME/bin/tb-wrapper" init
 
 # Success!
 echo ""

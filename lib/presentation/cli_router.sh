@@ -34,6 +34,10 @@ CLIRouter::workflow() {
         delete)
             _workflow_delete "$@"
             ;;
+        export)
+            source "${TERMBRAIN_LIB}/application/commands/export_data.sh"
+            ExportData::workflows "$@"
+            ;;
         help|*)
             _workflow_help
             ;;

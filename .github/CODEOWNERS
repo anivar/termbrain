@@ -1,0 +1,19 @@
+# Code owners for automatic PR review assignment
+# See https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Global owners
+* @anivar
+
+# Documentation
+*.md @anivar
+docs/ @anivar
+
+# Core functionality
+lib/ @anivar
+bin/ @anivar
+
+# Tests
+tests/ @anivar
+
+# CI/CD
+.github/ @anivar

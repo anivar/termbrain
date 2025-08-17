@@ -10,7 +10,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Next features and improvements will be listed here
 
-## [1.0.0] - 2024-01-XX
+## [1.0.1] - 2025-08-17
+
+### Added
+- 📤 **Export Functionality**
+  - Export command history in multiple formats (JSON, CSV, Markdown, SQL)
+  - Export workflows as JSON or executable shell scripts
+  - Query-based filtering for exports
+  - Automatic sensitive data exclusion from exports
+- 🗑️ **Uninstaller Script**
+  - Safe removal of Termbrain with data backup option
+  - Shell configuration cleanup with backup
+  - Optional command history export before uninstall
+
+### Fixed
+- Flow state persistence between command invocations
+- Intention tracking state persistence
+- Database migration messages redirected to stderr
+- Clean architecture refactoring (100% complete)
+- Removed version from code (now only in VERSION file)
+
+### Changed
+- Version now read from single VERSION file
+- Enhanced help documentation with export examples
+
+## [1.0.0] - 2025-08-17
 
 ### Added
 - 🧠 **Core Memory System**

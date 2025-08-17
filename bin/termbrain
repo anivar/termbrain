@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Termbrain - The Terminal That Never Forgets
 
-# export TERMBRAIN_VERSION="1.0.0"  # Version only needed for updates
 export TERMBRAIN_HOME="${TERMBRAIN_HOME:-$HOME/.termbrain}"
 export TERMBRAIN_DB="$TERMBRAIN_HOME/data/termbrain.db"
 
@@ -44,6 +43,45 @@ main() {
         status)
             CommandRouter::status
             ;;
+        intend)
+            CommandRouter::intend "$@"
+            ;;
+        achieved)
+            CommandRouter::achieved
+            ;;
+        flow)
+            CommandRouter::flow "$@"
+            ;;
+        growth)
+            CommandRouter::growth
+            ;;
+        suggest)
+            CommandRouter::suggest
+            ;;
+        context)
+            CommandRouter::context "$@"
+            ;;
+        ai)
+            CommandRouter::ai "$@"
+            ;;
+        why)
+            CommandRouter::why "$@"
+            ;;
+        arch)
+            CommandRouter::arch
+            ;;
+        explore)
+            CommandRouter::explore "$@"
+            ;;
+        project)
+            CommandRouter::project
+            ;;
+        export)
+            CommandRouter::export "$@"
+            ;;
+        predictive)
+            CommandRouter::predictive "$@"
+            ;;
         init)
             CommandRouter::init
             ;;
@@ -55,6 +93,15 @@ main() {
             ;;
         help|--help|-h)
             CommandRouter::help
+            ;;
+        version|--version|-v)
+            if [[ -f "$TERMBRAIN_LIB/../VERSION" ]]; then
+                cat "$TERMBRAIN_LIB/../VERSION"
+            elif [[ -f "${TERMBRAIN_HOME}/VERSION" ]]; then
+                cat "${TERMBRAIN_HOME}/VERSION"
+            else
+                echo "1.0.0"
+            fi
             ;;
         "")
             # If sourced without command, initialize

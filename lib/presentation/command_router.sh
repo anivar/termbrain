@@ -10,14 +10,31 @@ source "${TERMBRAIN_LIB}/application/commands/generate_stats.sh"
 source "${TERMBRAIN_LIB}/application/workflows/create_workflow.sh"
 source "${TERMBRAIN_LIB}/application/workflows/run_workflow.sh"
 
+# Load cognitive features
+source "${TERMBRAIN_LIB}/application/ai/track_intention.sh"
+source "${TERMBRAIN_LIB}/application/ai/extract_knowledge.sh"
+source "${TERMBRAIN_LIB}/application/ai/track_flow.sh"
+source "${TERMBRAIN_LIB}/application/ai/show_growth.sh"
+source "${TERMBRAIN_LIB}/application/ai/suggest_actions.sh"
+source "${TERMBRAIN_LIB}/application/ai/generate_context.sh"
+
+# Load enhanced features
+source "${TERMBRAIN_LIB}/application/commands/generate_ai_context.sh"
+source "${TERMBRAIN_LIB}/application/commands/explain_commands.sh"
+source "${TERMBRAIN_LIB}/application/commands/analyze_project.sh"
+source "${TERMBRAIN_LIB}/application/commands/export_data.sh"
+
 # Load infrastructure
 source "${TERMBRAIN_LIB}/infrastructure/repositories/sqlite_command_repository.sh"
 source "${TERMBRAIN_LIB}/infrastructure/repositories/sqlite_workflow_repository.sh"
 source "${TERMBRAIN_LIB}/infrastructure/shell/shell_hooks.sh"
+source "${TERMBRAIN_LIB}/infrastructure/database/cognitive_schema.sh"
+source "${TERMBRAIN_LIB}/infrastructure/database/migration_runner.sh"
 
 # Initialize repositories
 SqliteCommandRepository::init
 SqliteWorkflowRepository::init
+CognitiveSchema::ensure
 
 # Route search commands
 CommandRouter::search() {
@@ -61,6 +78,56 @@ CommandRouter::productivity() {
     GenerateStats::productivity
 }
 
+# Cognitive commands
+CommandRouter::intend() {
+    TrackIntention::start "$@"
+}
+
+CommandRouter::achieved() {
+    TrackIntention::complete
+}
+
+CommandRouter::flow() {
+    TrackFlow::main "$@"
+}
+
+CommandRouter::growth() {
+    ShowGrowth::display
+}
+
+CommandRouter::suggest() {
+    SuggestActions::display
+}
+
+CommandRouter::context() {
+    GenerateContext::cognitive "$@"
+}
+
+# Enhanced commands
+CommandRouter::ai() {
+    GenerateAIContext::execute "$@"
+}
+
+CommandRouter::why() {
+    ExplainCommands::why "$@"
+}
+
+CommandRouter::arch() {
+    ExplainCommands::architecture
+}
+
+CommandRouter::explore() {
+    ExplainCommands::explore "$@"
+}
+
+CommandRouter::project() {
+    AnalyzeProject::execute
+}
+
+CommandRouter::export() {
+    ExportData::execute "$@"
+}
+
 # Search commands by semantic type
 CommandRouter::type() {
     local semantic_type="$1"
@@ -96,6 +163,37 @@ CommandRouter::disable() {
 CommandRouter::enable() {
     ShellHooks::enable
     echo "▶️ Termbrain enabled"
+}
+
+# Toggle predictive mode
+CommandRouter::predictive() {
+    local action="${1:-toggle}"
+    
+    source "${TERMBRAIN_LIB}/infrastructure/shell/prediction_hooks.sh"
+    
+    case "$action" in
+        on|enable)
+            PredictionHooks::enable
+            echo "🤖 Predictive mode enabled"
+            ;;
+        off|disable)
+            PredictionHooks::disable
+            echo "🤖 Predictive mode disabled"
+            ;;
+        toggle)
+            if [[ "${TERMBRAIN_PREDICTIVE:-0}" == "1" ]]; then
+                PredictionHooks::disable
+                echo "🤖 Predictive mode disabled"
+            else
+                PredictionHooks::enable
+                echo "🤖 Predictive mode enabled"
+            fi
+            ;;
+        *)
+            echo "Usage: tb predictive [on|off|toggle]"
+            return 1
+            ;;
+    esac
 }
 
 # Status check
@@ -161,5 +259,34 @@ Statistics Examples:
   tb productivity               Productivity metrics
 
 More info: https://github.com/anivar/termbrain
+
+Cognitive Commands:
+  tb intend [goal]              Set an intention/goal
+  tb achieved                   Mark intention complete
+  tb flow [start|end|status]    Track flow state
+  tb growth                     View learning analytics
+  tb suggest                    Get personalized suggestions
+  tb context [query]            Generate cognitive context
+
+Enhanced Commands:
+  tb ai [query]                 Generate AI assistant context
+  tb why [limit]                Explain recent commands
+  tb arch                       Analyze project architecture
+  tb explore [pattern]          Explore command patterns
+  tb project                    Analyze current project
+  tb export [format] [file]     Export command history (json|csv|md|sql)
+  tb predictive [on|off]        Toggle predictive suggestions
+
+Export Examples:
+  tb export                     Export all to JSON (default)
+  tb export csv                 Export to CSV format
+  tb export md report.md        Export to markdown file
+  tb export json - git          Export git commands to JSON
+  tb workflow export            Export workflows
+
+Predictive Mode:
+  tb predictive on              Enable smart suggestions
+  tb predictive off             Disable suggestions
+  tb predictive                 Toggle on/off
 EOF
 }
