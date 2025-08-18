@@ -9,15 +9,20 @@ pub trait CommandRepository: Send + Sync {
     async fn search(&self, query: &str, limit: usize) -> Result<Vec<Command>>;
     async fn get_recent(&self, limit: usize) -> Result<Vec<Command>>;
     async fn get_by_semantic_type(&self, semantic_type: &str, limit: usize) -> Result<Vec<Command>>;
+    async fn get_by_directory(&self, directory: &str, limit: usize) -> Result<Vec<Command>>;
+    async fn get_since(&self, since: chrono::DateTime<chrono::Utc>) -> Result<Vec<Command>>;
+    async fn get_all(&self) -> Result<Vec<Command>>;
     async fn get_statistics(&self, range: &str) -> Result<CommandStats>;
     async fn update(&self, command: &Command) -> Result<()>;
     async fn delete(&self, id: &str) -> Result<()>;
+    async fn count(&self) -> Result<u64>;
 }
 
 #[async_trait]
 pub trait WorkflowRepository: Send + Sync {
     async fn save(&self, workflow: &Workflow) -> Result<()>;
     async fn find_by_name(&self, name: &str) -> Result<Option<Workflow>>;
+    async fn get_by_name(&self, name: &str) -> Result<Option<Workflow>>;
     async fn list(&self) -> Result<Vec<Workflow>>;
     async fn update(&self, workflow: &Workflow) -> Result<()>;
     async fn delete(&self, name: &str) -> Result<()>;

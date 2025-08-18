@@ -24,16 +24,10 @@ pub struct Workflow {
     pub id: Uuid,
     pub name: String,
     pub description: String,
-    pub commands: Vec<WorkflowCommand>,
+    pub commands: Vec<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub execution_count: u32,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct WorkflowCommand {
-    pub position: u32,
-    pub command: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -55,15 +49,32 @@ pub struct Pattern {
     pub suggested_workflow: Option<String>,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
+pub enum CommandType {
+    Navigation,
+    FileOperation,
+    Git,
+    Development,
+    System,
+    Network,
+    Container,
+    Database,
+    Search,
+    Other,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 pub enum SemanticType {
     VersionControl,
     PackageManagement,
     Testing,
     Building,
+    Build,
     Container,
     FileOperation,
+    FileManagement,
     Navigation,
     ProcessManagement,
     Network,
@@ -72,6 +83,13 @@ pub enum SemanticType {
     Monitoring,
     Searching,
     General,
+    ProjectSetup,
+    CodeReview,
+    Development,
+    DataProcessing,
+    Documentation,
+    Deployment,
+    Other,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
@@ -147,6 +165,8 @@ impl SemanticType {
             SemanticType::PackageManagement
         } else if cmd_lower.contains("test") || cmd_lower.contains("spec") {
             SemanticType::Testing
+        } else if cmd_lower.contains("build") || cmd_lower.starts_with("make") {
+            SemanticType::Build
         } else if cmd_lower.starts_with("docker") || cmd_lower.starts_with("kubectl") {
             SemanticType::Container
         } else if cmd_lower.starts_with("ls") || cmd_lower.starts_with("cd") {
@@ -155,7 +175,7 @@ impl SemanticType {
                 || cmd_lower.starts_with("rm") {
             SemanticType::FileOperation
         } else {
-            SemanticType::General
+            SemanticType::Other
         }
     }
 }
