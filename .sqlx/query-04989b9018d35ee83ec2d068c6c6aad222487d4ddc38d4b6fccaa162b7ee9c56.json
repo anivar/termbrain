@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "CREATE INDEX IF NOT EXISTS idx_commands_timestamp ON commands(timestamp)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "04989b9018d35ee83ec2d068c6c6aad222487d4ddc38d4b6fccaa162b7ee9c56"
+}

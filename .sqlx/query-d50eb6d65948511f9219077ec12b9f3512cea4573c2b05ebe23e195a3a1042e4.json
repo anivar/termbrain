@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        CREATE TABLE IF NOT EXISTS workflow_commands (\n            workflow_id TEXT NOT NULL,\n            position INTEGER NOT NULL,\n            command TEXT NOT NULL,\n            PRIMARY KEY (workflow_id, position),\n            FOREIGN KEY (workflow_id) REFERENCES workflows(id) ON DELETE CASCADE\n        )\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "d50eb6d65948511f9219077ec12b9f3512cea4573c2b05ebe23e195a3a1042e4"
+}

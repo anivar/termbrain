@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        CREATE TABLE IF NOT EXISTS commands (\n            id TEXT PRIMARY KEY,\n            timestamp INTEGER NOT NULL,\n            command TEXT NOT NULL,\n            directory TEXT NOT NULL,\n            exit_code INTEGER NOT NULL DEFAULT 0,\n            duration_ms INTEGER NOT NULL DEFAULT 0,\n            session_id TEXT NOT NULL,\n            semantic_type TEXT NOT NULL,\n            git_branch TEXT,\n            project_type TEXT,\n            is_sensitive INTEGER NOT NULL DEFAULT 0,\n            intent TEXT,\n            complexity INTEGER NOT NULL DEFAULT 1\n        )\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "486996652645a06b48b02c62fbb86cdfd360f5ac928b4d1eda1082cb1d69d7aa"
+}

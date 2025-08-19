@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            UPDATE workflows \n            SET description = ?, updated_at = ?, execution_count = ?\n            WHERE id = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "619c6a41c58b1c7885683c596a2fe31302c4fc7861316911cbc5e7e6ab66d64c"
+}

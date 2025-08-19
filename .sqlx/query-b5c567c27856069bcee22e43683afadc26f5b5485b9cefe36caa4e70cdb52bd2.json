@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            UPDATE patterns \n            SET frequency = frequency + 1\n            WHERE id = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "b5c567c27856069bcee22e43683afadc26f5b5485b9cefe36caa4e70cdb52bd2"
+}

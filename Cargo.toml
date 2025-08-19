@@ -1,0 +1,25 @@
+[workspace]
+members = ["crates/*"]
+resolver = "2"
+
+[workspace.package]
+version = "2.0.0-alpha.1"
+edition = "2021"
+authors = ["Anivar <anivar@users.noreply.github.com>"]
+license = "MIT"
+repository = "https://github.com/anivar/termbrain"
+
+[workspace.dependencies]
+tokio = { version = "1.40", features = ["rt-multi-thread", "macros"] }
+anyhow = "1.0"
+thiserror = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+clap = { version = "4.5", features = ["derive"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+[profile.release]
+lto = true
+strip = true
+opt-level = "z"

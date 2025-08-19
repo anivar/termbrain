@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        CREATE TABLE IF NOT EXISTS workflows (\n            id TEXT PRIMARY KEY,\n            name TEXT UNIQUE NOT NULL,\n            description TEXT NOT NULL,\n            created_at INTEGER NOT NULL,\n            updated_at INTEGER NOT NULL,\n            execution_count INTEGER NOT NULL DEFAULT 0\n        )\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "4db44e549223cbac11ab3d31fed6dae402e0c413686366578ec937cf488ede32"
+}

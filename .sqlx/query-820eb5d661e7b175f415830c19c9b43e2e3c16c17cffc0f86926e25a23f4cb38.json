@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            INSERT INTO commands (\n                id, timestamp, command, directory, exit_code, duration_ms,\n                session_id, semantic_type, git_branch, project_type,\n                is_sensitive, intent, complexity\n            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 13
+    },
+    "nullable": []
+  },
+  "hash": "820eb5d661e7b175f415830c19c9b43e2e3c16c17cffc0f86926e25a23f4cb38"
+}

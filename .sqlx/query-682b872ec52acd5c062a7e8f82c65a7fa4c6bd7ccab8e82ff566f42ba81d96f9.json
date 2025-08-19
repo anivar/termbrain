@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT directory, COUNT(*) as cnt\n            FROM commands\n            WHERE timestamp >= ?\n            GROUP BY directory\n            ORDER BY cnt DESC\n            LIMIT 10\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "directory",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "cnt",
+        "ordinal": 1,
+        "type_info": "Null"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "682b872ec52acd5c062a7e8f82c65a7fa4c6bd7ccab8e82ff566f42ba81d96f9"
+}

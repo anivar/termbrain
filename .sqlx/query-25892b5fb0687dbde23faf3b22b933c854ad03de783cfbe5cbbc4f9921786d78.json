@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            INSERT INTO patterns (\n                id, pattern, frequency, contexts, suggested_workflow\n            ) VALUES (?, ?, ?, ?, ?)\n            ON CONFLICT(id) DO UPDATE SET\n                frequency = excluded.frequency,\n                contexts = excluded.contexts,\n                suggested_workflow = excluded.suggested_workflow\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "25892b5fb0687dbde23faf3b22b933c854ad03de783cfbe5cbbc4f9921786d78"
+}

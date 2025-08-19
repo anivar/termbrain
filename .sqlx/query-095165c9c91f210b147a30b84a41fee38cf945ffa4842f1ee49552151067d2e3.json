@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        CREATE TABLE IF NOT EXISTS patterns (\n            id TEXT PRIMARY KEY,\n            pattern TEXT NOT NULL,\n            frequency INTEGER NOT NULL DEFAULT 1,\n            contexts TEXT NOT NULL,\n            suggested_workflow TEXT,\n            created_at INTEGER NOT NULL,\n            updated_at INTEGER NOT NULL\n        )\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "095165c9c91f210b147a30b84a41fee38cf945ffa4842f1ee49552151067d2e3"
+}

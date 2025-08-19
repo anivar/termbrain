@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            INSERT INTO intentions (\n                id, session_id, intention, created_at, achieved, commands_count\n            ) VALUES (?, ?, ?, ?, ?, ?)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": []
+  },
+  "hash": "e83eeb98dfa47acfff4f19106f6e3960b4ce1ef30cfa034ef57b5314bcc654c9"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        CREATE TABLE IF NOT EXISTS cognitive_states (\n            id TEXT PRIMARY KEY,\n            session_id TEXT NOT NULL,\n            mental_model TEXT,\n            knowledge_items TEXT,\n            created_at INTEGER NOT NULL,\n            updated_at INTEGER NOT NULL\n        )\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "c3de06fe6eb6a452dd023ab6227e79863464f6fd27eafa2d8948346b4d9a06de"
+}
