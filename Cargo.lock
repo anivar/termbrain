@@ -89,6 +89,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b0674a1ddeecb70197781e945de4b3b8ffb61fa939a5597bcf48503737663100"
 
 [[package]]
+<<<<<<< HEAD
 name = "async-trait"
 version = "0.1.89"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -100,6 +101,8 @@ dependencies = [
 ]
 
 [[package]]
+=======
+>>>>>>> main
 name = "autocfg"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -526,7 +529,10 @@ name = "termbrain-core"
 version = "2.0.0-alpha.1"
 dependencies = [
  "anyhow",
+<<<<<<< HEAD
  "async-trait",
+=======
+>>>>>>> main
  "chrono",
  "serde",
  "serde_json",
