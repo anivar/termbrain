@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            UPDATE intentions \n            SET achieved = 1\n            WHERE id = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "43004d1ab81919b1f5c4ae2a39bdcfb9d7c81be1e9155417a1886ac0eaa2fcd2"
+}

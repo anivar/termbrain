@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            DELETE FROM workflows WHERE name = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "5af671534129e0cea19af339b7c60c0b1e850d4585418a4f982ac871f00bc1b4"
+}

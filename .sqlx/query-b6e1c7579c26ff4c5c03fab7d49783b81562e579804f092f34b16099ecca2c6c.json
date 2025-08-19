@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "CREATE INDEX IF NOT EXISTS idx_commands_session ON commands(session_id)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "b6e1c7579c26ff4c5c03fab7d49783b81562e579804f092f34b16099ecca2c6c"
+}

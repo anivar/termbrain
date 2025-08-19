@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        CREATE TABLE IF NOT EXISTS flow_states (\n            id TEXT PRIMARY KEY,\n            session_id TEXT NOT NULL,\n            started_at INTEGER NOT NULL,\n            ended_at INTEGER,\n            productivity_score REAL,\n            focus_area TEXT\n        )\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "ca89503dded484241f45380466653d0d23cb214669baab5d190ef68841b52545"
+}

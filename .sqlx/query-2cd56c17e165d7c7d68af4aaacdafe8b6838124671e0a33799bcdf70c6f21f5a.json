@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT \n                CAST(strftime('%H', datetime(timestamp, 'unixepoch')) AS INTEGER) as hr,\n                COUNT(*) as cnt\n            FROM commands\n            WHERE timestamp >= ?\n            GROUP BY hr\n            ORDER BY hr\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "hr",
+        "ordinal": 0,
+        "type_info": "Null"
+      },
+      {
+        "name": "cnt",
+        "ordinal": 1,
+        "type_info": "Null"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "2cd56c17e165d7c7d68af4aaacdafe8b6838124671e0a33799bcdf70c6f21f5a"
+}

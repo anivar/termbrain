@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        CREATE TABLE IF NOT EXISTS intentions (\n            id TEXT PRIMARY KEY,\n            session_id TEXT NOT NULL,\n            intention TEXT NOT NULL,\n            created_at INTEGER NOT NULL,\n            achieved INTEGER NOT NULL DEFAULT 0,\n            commands_count INTEGER NOT NULL DEFAULT 0\n        )\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "6d6d83f7a472abe9aebca550b0c34235ffdbfb4ad93223e54655dae9e0f324ae"
+}

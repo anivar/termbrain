@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT \n                COUNT(*) as total,\n                COUNT(CASE WHEN exit_code = 0 THEN 1 END) as successful,\n                COUNT(CASE WHEN exit_code != 0 THEN 1 END) as failed,\n                COUNT(DISTINCT command) as unique_commands,\n                AVG(duration_ms) as avg_duration\n            FROM commands\n            WHERE timestamp >= ?\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "total",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "successful",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "failed",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "unique_commands",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "avg_duration",
+        "ordinal": 4,
+        "type_info": "Null"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "6bfad4c6ede6608d6855906097fc1faaef56b61095b99a3d1f115e4c59d0ae01"
+}

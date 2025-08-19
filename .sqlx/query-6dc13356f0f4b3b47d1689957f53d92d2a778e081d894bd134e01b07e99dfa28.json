@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT * FROM patterns \n            WHERE frequency >= ?\n            ORDER BY frequency DESC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "pattern",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "frequency",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "contexts",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "suggested_workflow",
+        "ordinal": 4,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "6dc13356f0f4b3b47d1689957f53d92d2a778e081d894bd134e01b07e99dfa28"
+}

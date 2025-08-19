@@ -1,0 +1,92 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT * FROM commands \n            WHERE timestamp >= ? AND is_sensitive = 0\n            ORDER BY timestamp DESC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "timestamp",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "command",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "directory",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "exit_code",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "duration_ms",
+        "ordinal": 5,
+        "type_info": "Integer"
+      },
+      {
+        "name": "session_id",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "semantic_type",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "git_branch",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "project_type",
+        "ordinal": 9,
+        "type_info": "Text"
+      },
+      {
+        "name": "is_sensitive",
+        "ordinal": 10,
+        "type_info": "Integer"
+      },
+      {
+        "name": "intent",
+        "ordinal": 11,
+        "type_info": "Text"
+      },
+      {
+        "name": "complexity",
+        "ordinal": 12,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "ed17ff84c4570121751b7b6c805c83d7e3f3467e5293e0c0984af5e0b181e63a"
+}

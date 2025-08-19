@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "CREATE INDEX IF NOT EXISTS idx_commands_semantic ON commands(semantic_type)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "736e2f7829da0cf1290984a1a5b91d4aebdb97a5f6d9da9131dade6da8bb6850"
+}

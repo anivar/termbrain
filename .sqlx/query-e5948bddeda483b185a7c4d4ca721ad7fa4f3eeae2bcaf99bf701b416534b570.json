@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT * FROM workflows WHERE name = ?\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "description",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "updated_at",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "execution_count",
+        "ordinal": 5,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "e5948bddeda483b185a7c4d4ca721ad7fa4f3eeae2bcaf99bf701b416534b570"
+}

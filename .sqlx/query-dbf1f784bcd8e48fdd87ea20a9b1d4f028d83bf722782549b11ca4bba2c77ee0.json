@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT semantic_type, COUNT(*) as cnt\n            FROM commands\n            WHERE timestamp >= ?\n            GROUP BY semantic_type\n            ORDER BY cnt DESC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "semantic_type",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "cnt",
+        "ordinal": 1,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "dbf1f784bcd8e48fdd87ea20a9b1d4f028d83bf722782549b11ca4bba2c77ee0"
+}

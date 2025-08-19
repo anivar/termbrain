@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                INSERT INTO workflow_commands (workflow_id, position, command)\n                VALUES (?, ?, ?)\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "6faae6cb503b3f3daebcbae9b1dfa314a47008b0a8476a992d1bf2010d8a1126"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            UPDATE commands SET\n                exit_code = ?, duration_ms = ?, git_branch = ?,\n                project_type = ?, intent = ?, complexity = ?\n            WHERE id = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": []
+  },
+  "hash": "fb8bd15bc7dbb9e5dd5953b14d51710688b60903ea550a4f898c2d7b8493708d"
+}
