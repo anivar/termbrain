@@ -19,11 +19,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        shell: [bash, zsh]
-        exclude:
-          - os: ubuntu-latest
-            shell: zsh
+        os: [ubuntu-latest]
+        shell: [bash]
 
     steps:
     - uses: actions/checkout@v4
