@@ -1,7 +1,7 @@
 //! SQLite connection pool management
 
 use anyhow::Result;
-use sqlx::{sqlite::SqlitePoolOptions, SqlitePool};
+use sqlx::{sqlite::SqlitePoolOptions, SqlitePool, Executor};
 use std::path::Path;
 
 pub struct SqliteStorage {

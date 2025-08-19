@@ -11,8 +11,13 @@ path = "src/main.rs"
 
 [dependencies]
 termbrain-core = { path = "../termbrain-core" }
+termbrain-storage = { path = "../termbrain-storage" }
 tokio.workspace = true
 anyhow.workspace = true
 clap.workspace = true
 tracing.workspace = true
-tracing-subscriber.workspace = true
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
+serde.workspace = true
+serde_json.workspace = true
+chrono = { version = "0.4", features = ["serde"] }
+dirs = "5.0"
