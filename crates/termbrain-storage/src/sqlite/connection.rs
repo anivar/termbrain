@@ -31,16 +31,23 @@ impl SqliteStorage {
     pub async fn in_memory() -> Result<Self> {
         let pool = SqlitePoolOptions::new()
             .max_connections(1)
-            .after_connect(|conn, _meta| {
-                Box::pin(async move {
-                    // Load sqlite-vec extension
-                    conn.execute("SELECT load_extension('vec0')")
-                        .await?;
-                    Ok(())
-                })
-            })
             .connect("sqlite::memory:")
             .await?;
+        
+        // Create basic tables for testing
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS commands (
+                id TEXT PRIMARY KEY,
+                command TEXT NOT NULL,
+                created_at INTEGER NOT NULL,
+                working_directory TEXT DEFAULT '/',
+                exit_code INTEGER DEFAULT 0
+            )
+            "#
+        )
+        .execute(&pool)
+        .await?;
         
         Ok(Self { pool })
     }

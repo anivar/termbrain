@@ -1,6 +1,11 @@
 //! Command implementations
 
 use anyhow::Result;
+use chrono::{DateTime, Utc};
+use std::collections::HashMap;
+use termbrain_core::domain::repositories::{CommandRepository, SessionRepository};
+use termbrain_storage::sqlite::{SqliteStorage, SqliteCommandRepository};
+use uuid::Uuid;
 use crate::{OutputFormat, ExportFormat, WorkflowAction};
 
 pub async fn record_command(
@@ -9,13 +14,34 @@ pub async fn record_command(
     duration: Option<u64>,
     directory: Option<String>,
 ) -> Result<()> {
+    let storage = SqliteStorage::in_memory().await?;
+    let repo = SqliteCommandRepository::new(storage.pool().clone());
+    
+    let cmd = termbrain_core::domain::entities::Command {
+        id: Uuid::new_v4(),
+        raw: command.clone(),
+        parsed_command: command.clone(),
+        arguments: vec![],
+        working_directory: directory.unwrap_or_else(|| std::env::current_dir().unwrap().to_string_lossy().to_string()),
+        exit_code,
+        duration_ms: duration.unwrap_or(0),
+        timestamp: Utc::now(),
+        session_id: "test-session".to_string(),
+        metadata: termbrain_core::domain::entities::CommandMetadata {
+            shell: "bash".to_string(),
+            user: "user".to_string(),
+            hostname: "localhost".to_string(),
+            terminal: "terminal".to_string(),
+            environment: std::collections::HashMap::new(),
+        },
+    };
+    
+    repo.save(&cmd).await?;
+    
     println!("📝 Recording command: {}", command);
     println!("   Exit code: {}", exit_code);
     if let Some(dur) = duration {
         println!("   Duration: {}ms", dur);
-    }
-    if let Some(dir) = directory {
-        println!("   Directory: {}", dir);
     }
     println!("✅ Command recorded successfully");
     Ok(())
@@ -29,30 +55,59 @@ pub async fn search_commands(
     semantic: bool,
     format: OutputFormat,
 ) -> Result<()> {
-    println!("🔍 Searching for: '{}'", query);
-    if semantic {
-        println!("   Using semantic search");
-    }
-    if let Some(dir) = directory {
-        println!("   In directory: {}", dir);
-    }
-    if let Some(since_date) = since {
-        println!("   Since: {}", since_date);
-    }
-    
-    // Mock results
+    let storage = SqliteStorage::in_memory().await?;
+    let repo = SqliteCommandRepository::new(storage.pool().clone());
+
+    // Parse since date if provided
+    let since_date = if let Some(since_str) = since {
+        Some(since_str.parse::<DateTime<Utc>>()?)
+    } else {
+        None
+    };
+
+    // Perform search based on type
+    let results = if semantic {
+        repo.search_semantic(&query, limit).await?
+    } else {
+        repo.search(&query, limit, directory.as_deref(), since_date).await?
+    };
+
+    // Display results
     match format {
         OutputFormat::Table => {
-            println!("\n┌─────────────────────────────────────────────────┬─────────────────────┐");
-            println!("│ Command                                         │ Last Used           │");
-            println!("├─────────────────────────────────────────────────┼─────────────────────┤");
-            println!("│ git status                                      │ 2 minutes ago       │");
-            println!("│ git commit -m 'feat: add search'               │ 1 hour ago          │");
-            println!("│ cargo test                                      │ 3 hours ago         │");
-            println!("└─────────────────────────────────────────────────┴─────────────────────┘");
+            if results.is_empty() {
+                println!("No commands found matching '{}'", query);
+                return Ok(());
+            }
+
+            println!("\n┌─────────────────────────────────────────────────┬─────────────────────┬──────┐");
+            println!("│ Command                                         │ Last Used           │ Exit │");
+            println!("├─────────────────────────────────────────────────┼─────────────────────┼──────┤");
+            
+            for cmd in results {
+                let time_str = format_relative_time(&cmd.timestamp);
+                let truncated_cmd = truncate_string(&cmd.raw, 47);
+                println!("│ {:<47} │ {:<19} │ {:>4} │", 
+                    truncated_cmd, time_str, cmd.exit_code);
+            }
+            
+            println!("└─────────────────────────────────────────────────┴─────────────────────┴──────┘");
         }
-        _ => {
-            println!("Found {} results (showing {} format)", 3, format_name(&format));
+        OutputFormat::Json => {
+            println!("{}", serde_json::to_string_pretty(&results)?);
+        }
+        OutputFormat::Csv => {
+            println!("command,timestamp,exit_code,directory,duration_ms");
+            for cmd in results {
+                println!("{},{},{},{},{}", 
+                    cmd.raw, cmd.timestamp, cmd.exit_code, 
+                    cmd.working_directory, cmd.duration_ms);
+            }
+        }
+        OutputFormat::Plain => {
+            for cmd in results {
+                println!("{} ({})", cmd.raw, format_relative_time(&cmd.timestamp));
+            }
         }
     }
     
@@ -248,5 +303,30 @@ fn format_name(format: &OutputFormat) -> &str {
         OutputFormat::Json => "JSON",
         OutputFormat::Csv => "CSV",
         OutputFormat::Plain => "plain text",
+    }
+}
+
+fn format_relative_time(timestamp: &DateTime<Utc>) -> String {
+    let now = Utc::now();
+    let duration = now.signed_duration_since(*timestamp);
+    
+    if duration.num_seconds() < 60 {
+        "Just now".to_string()
+    } else if duration.num_minutes() < 60 {
+        format!("{} min ago", duration.num_minutes())
+    } else if duration.num_hours() < 24 {
+        format!("{} hr ago", duration.num_hours())
+    } else if duration.num_days() < 7 {
+        format!("{} days ago", duration.num_days())
+    } else {
+        timestamp.format("%Y-%m-%d").to_string()
+    }
+}
+
+fn truncate_string(s: &str, max_len: usize) -> String {
+    if s.len() <= max_len {
+        s.to_string()
+    } else {
+        format!("{}...", &s[..max_len.saturating_sub(3)])
     }
 }

@@ -14,6 +14,8 @@ pub trait CommandRepository: Send + Sync {
     async fn find_by_pattern(&self, pattern: &str) -> Result<Vec<Command>>;
     async fn find_by_directory(&self, directory: &str) -> Result<Vec<Command>>;
     async fn find_by_time_range(&self, start: DateTime<Utc>, end: DateTime<Utc>) -> Result<Vec<Command>>;
+    async fn search(&self, query: &str, limit: usize, directory: Option<&str>, since: Option<DateTime<Utc>>) -> Result<Vec<Command>>;
+    async fn search_semantic(&self, query: &str, limit: usize) -> Result<Vec<Command>>;
     async fn delete_by_id(&self, id: &uuid::Uuid) -> Result<()>;
     async fn count(&self) -> Result<usize>;
 }
