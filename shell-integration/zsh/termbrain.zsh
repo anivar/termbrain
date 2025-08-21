@@ -38,10 +38,11 @@ _termbrain_record_command() {
     fi
     
     # Record the command asynchronously
+    # Use -- to prevent command injection and safely handle paths
     (
-        tb record "$last_command" \
+        tb record -- "$last_command" \
             --exit-code "$exit_code" \
-            --directory "$PWD" \
+            --directory "$(realpath -- "$PWD" 2>/dev/null || print -r -- "$PWD")" \
             ${duration_ms:+--duration "$duration_ms"} \
             >/dev/null 2>&1 &
     )
