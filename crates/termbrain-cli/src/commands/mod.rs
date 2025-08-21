@@ -3,7 +3,11 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use std::collections::HashMap;
+use std::path::Path;
 use termbrain_core::domain::repositories::{CommandRepository, SessionRepository};
+use termbrain_core::validation::{
+    validate_command, validate_path, validate_shell, validate_username, validate_hostname
+};
 use termbrain_storage::sqlite::{SqliteStorage, SqliteCommandRepository};
 use uuid::Uuid;
 use crate::{OutputFormat, ExportFormat, WorkflowAction};
@@ -14,24 +18,65 @@ pub async fn record_command(
     duration: Option<u64>,
     directory: Option<String>,
 ) -> Result<()> {
+    // Validate command input
+    validate_command(&command)?;
+    
+    // Validate and normalize directory path
+    let working_directory = if let Some(dir) = directory {
+        let path = validate_path(Path::new(&dir))?;
+        path.to_string_lossy().to_string()
+    } else {
+        let current_dir = std::env::current_dir()?;
+        let path = validate_path(&current_dir)?;
+        path.to_string_lossy().to_string()
+    };
+    
+    // TODO: Use persistent storage instead of in-memory
     let storage = SqliteStorage::in_memory().await?;
     let repo = SqliteCommandRepository::new(storage.pool().clone());
+    
+    // Parse command name and arguments
+    let parts: Vec<&str> = command.split_whitespace().collect();
+    let parsed_command = parts.first().unwrap_or(&"").to_string();
+    let arguments = parts.into_iter().skip(1).map(|s| s.to_string()).collect();
+    
+    // Get and validate shell
+    let shell_path = std::env::var("SHELL").unwrap_or_else(|_| "/bin/bash".to_string());
+    let shell = shell_path.split('/').last().unwrap_or("bash").to_string();
+    if let Err(e) = validate_shell(&shell) {
+        eprintln!("Warning: {}", e);
+    }
+    
+    // Get and validate user
+    let user = std::env::var("USER").unwrap_or_else(|_| "unknown".to_string());
+    if let Err(e) = validate_username(&user) {
+        eprintln!("Warning: Invalid username '{}': {}", user, e);
+    }
+    
+    // Get and validate hostname
+    let hostname = hostname::get()
+        .map(|h| h.to_string_lossy().to_string())
+        .unwrap_or_else(|_| "localhost".to_string());
+    if let Err(e) = validate_hostname(&hostname) {
+        eprintln!("Warning: Invalid hostname '{}': {}", hostname, e);
+    }
     
     let cmd = termbrain_core::domain::entities::Command {
         id: Uuid::new_v4(),
         raw: command.clone(),
-        parsed_command: command.clone(),
-        arguments: vec![],
-        working_directory: directory.unwrap_or_else(|| std::env::current_dir().unwrap().to_string_lossy().to_string()),
+        parsed_command,
+        arguments,
+        working_directory,
         exit_code,
         duration_ms: duration.unwrap_or(0),
         timestamp: Utc::now(),
-        session_id: "test-session".to_string(),
+        session_id: std::env::var("TERMBRAIN_SESSION_ID")
+            .unwrap_or_else(|_| format!("{}-{}", Utc::now().timestamp(), std::process::id())),
         metadata: termbrain_core::domain::entities::CommandMetadata {
-            shell: "bash".to_string(),
-            user: "user".to_string(),
-            hostname: "localhost".to_string(),
-            terminal: "terminal".to_string(),
+            shell,
+            user,
+            hostname,
+            terminal: std::env::var("TERM").unwrap_or_else(|_| "xterm".to_string()),
             environment: std::collections::HashMap::new(),
         },
     };
@@ -55,6 +100,19 @@ pub async fn search_commands(
     semantic: bool,
     format: OutputFormat,
 ) -> Result<()> {
+    // Validate query (relaxed validation for search)
+    if query.is_empty() {
+        return Err(anyhow::anyhow!("Search query cannot be empty"));
+    }
+    
+    // Validate directory if provided
+    let validated_directory = if let Some(dir) = directory {
+        let path = validate_path(Path::new(&dir))?;
+        Some(path.to_string_lossy().to_string())
+    } else {
+        None
+    };
+    
     let storage = SqliteStorage::in_memory().await?;
     let repo = SqliteCommandRepository::new(storage.pool().clone());
 
@@ -69,7 +127,7 @@ pub async fn search_commands(
     let results = if semantic {
         repo.search_semantic(&query, limit).await?
     } else {
-        repo.search(&query, limit, directory.as_deref(), since_date).await?
+        repo.search(&query, limit, validated_directory.as_deref(), since_date).await?
     };
 
     // Display results
