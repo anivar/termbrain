@@ -41,10 +41,11 @@ _termbrain_record_command() {
     fi
     
     # Record the command asynchronously
+    # Use printf to safely escape the command and directory
     (
-        tb record "$last_command" \
+        tb record -- "$last_command" \
             --exit-code "$exit_code" \
-            --directory "$PWD" \
+            --directory "$(realpath -- "$PWD" 2>/dev/null || printf '%s' "$PWD")" \
             ${duration_ms:+--duration "$duration_ms"} \
             >/dev/null 2>&1 &
     )

@@ -37,17 +37,18 @@ function _termbrain_record_command --on-event fish_postexec
     end
     
     # Record the command asynchronously
+    # Use -- to prevent command injection and safely handle paths
     begin
         if test -n "$duration_ms"
-            tb record "$last_command" \
+            tb record -- "$last_command" \
                 --exit-code "$exit_code" \
-                --directory "$PWD" \
+                --directory (realpath -- "$PWD" 2>/dev/null; or echo "$PWD") \
                 --duration "$duration_ms" \
                 >/dev/null 2>&1 &
         else
-            tb record "$last_command" \
+            tb record -- "$last_command" \
                 --exit-code "$exit_code" \
-                --directory "$PWD" \
+                --directory (realpath -- "$PWD" 2>/dev/null; or echo "$PWD") \
                 >/dev/null 2>&1 &
         end
     end
