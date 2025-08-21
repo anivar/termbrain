@@ -12,3 +12,4 @@ serde.workspace = true
 serde_json.workspace = true
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1.10", features = ["v4", "serde"] }
+async-trait = "0.1"

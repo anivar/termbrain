@@ -1,62 +1,58 @@
 -- Create commands table
-CREATE TABLE commands (
+CREATE TABLE IF NOT EXISTS commands (
     id TEXT PRIMARY KEY,
-    timestamp INTEGER NOT NULL,
-    command TEXT NOT NULL,
-    directory TEXT NOT NULL,
+    raw TEXT NOT NULL,
+    parsed_command TEXT NOT NULL,
+    arguments TEXT NOT NULL, -- JSON array
+    working_directory TEXT NOT NULL,
     exit_code INTEGER NOT NULL DEFAULT 0,
     duration_ms INTEGER NOT NULL DEFAULT 0,
+    timestamp TEXT NOT NULL, -- ISO 8601 string
     session_id TEXT NOT NULL,
-    semantic_type TEXT NOT NULL,
-    git_branch TEXT,
-    project_type TEXT,
-    is_sensitive INTEGER NOT NULL DEFAULT 0,
-    intent TEXT,
-    complexity INTEGER NOT NULL DEFAULT 1
+    shell TEXT NOT NULL,
+    user TEXT NOT NULL,
+    hostname TEXT NOT NULL,
+    terminal TEXT NOT NULL,
+    environment TEXT NOT NULL -- JSON object
+);
+
+-- Create sessions table
+CREATE TABLE IF NOT EXISTS sessions (
+    id TEXT PRIMARY KEY,
+    start_time TEXT NOT NULL, -- ISO 8601 string
+    end_time TEXT, -- ISO 8601 string, nullable
+    shell TEXT NOT NULL,
+    terminal TEXT NOT NULL
+);
+
+-- Create patterns table
+CREATE TABLE IF NOT EXISTS patterns (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL,
+    pattern_type TEXT NOT NULL, -- JSON serialized PatternType
+    frequency INTEGER NOT NULL DEFAULT 1,
+    last_seen TEXT NOT NULL, -- ISO 8601 string
+    confidence REAL NOT NULL DEFAULT 0.0
 );
 
 -- Create workflows table
-CREATE TABLE workflows (
+CREATE TABLE IF NOT EXISTS workflows (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL UNIQUE,
     description TEXT NOT NULL,
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL,
-    execution_count INTEGER NOT NULL DEFAULT 0
-);
-
--- Create workflow_commands table
-CREATE TABLE workflow_commands (
-    workflow_id TEXT NOT NULL,
-    position INTEGER NOT NULL,
-    command TEXT NOT NULL,
-    PRIMARY KEY (workflow_id, position),
-    FOREIGN KEY (workflow_id) REFERENCES workflows(id) ON DELETE CASCADE
-);
-
--- Create patterns table  
-CREATE TABLE patterns (
-    id TEXT PRIMARY KEY,
-    pattern TEXT NOT NULL,
-    frequency INTEGER NOT NULL DEFAULT 1,
-    contexts TEXT NOT NULL, -- JSON array
-    suggested_workflow TEXT
-);
-
--- Create intentions table
-CREATE TABLE intentions (
-    id TEXT PRIMARY KEY,
-    session_id TEXT NOT NULL,
-    intention TEXT NOT NULL,
-    created_at INTEGER NOT NULL,
-    achieved INTEGER NOT NULL DEFAULT 0,
-    commands_count INTEGER NOT NULL DEFAULT 0
+    steps TEXT NOT NULL, -- JSON array of WorkflowStep
+    created_at TEXT NOT NULL, -- ISO 8601 string
+    updated_at TEXT NOT NULL, -- ISO 8601 string
+    usage_count INTEGER NOT NULL DEFAULT 0
 );
 
 -- Create indexes for performance
-CREATE INDEX idx_commands_timestamp ON commands(timestamp);
-CREATE INDEX idx_commands_session ON commands(session_id);
-CREATE INDEX idx_commands_semantic_type ON commands(semantic_type);
-CREATE INDEX idx_commands_sensitive ON commands(is_sensitive);
-CREATE INDEX idx_patterns_frequency ON patterns(frequency);
-CREATE INDEX idx_intentions_session ON intentions(session_id);
+CREATE INDEX IF NOT EXISTS idx_commands_timestamp ON commands(timestamp);
+CREATE INDEX IF NOT EXISTS idx_commands_session ON commands(session_id);
+CREATE INDEX IF NOT EXISTS idx_commands_exit_code ON commands(exit_code);
+CREATE INDEX IF NOT EXISTS idx_commands_working_directory ON commands(working_directory);
+CREATE INDEX IF NOT EXISTS idx_commands_parsed_command ON commands(parsed_command);
+CREATE INDEX IF NOT EXISTS idx_patterns_frequency ON patterns(frequency);
+CREATE INDEX IF NOT EXISTS idx_patterns_confidence ON patterns(confidence);
+CREATE INDEX IF NOT EXISTS idx_sessions_start_time ON sessions(start_time);
