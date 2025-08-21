@@ -1,10 +1,8 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use chrono::{DateTime, Utc};
 
 mod commands;
 mod config;
-mod output;
 
 use commands::*;
 
@@ -45,7 +43,7 @@ enum Commands {
         exit_code: i32,
         
         /// Duration in milliseconds
-        #[arg(short, long)]
+        #[arg(long)]
         duration: Option<u64>,
         
         /// Working directory
@@ -152,6 +150,17 @@ enum Commands {
         yes: bool,
     },
     
+    /// Remove TermBrain and clean up files
+    Uninstall {
+        /// Remove all data including command history
+        #[arg(long)]
+        purge: bool,
+        
+        /// Skip confirmation prompts
+        #[arg(short, long)]
+        yes: bool,
+    },
+    
     /// Start interactive session
     #[command(alias = "i")]
     Interactive,
@@ -236,6 +245,10 @@ async fn main() -> Result<()> {
         
         Some(Commands::Install { shell, yes }) => {
             install_shell_integration(shell, yes).await?;
+        }
+        
+        Some(Commands::Uninstall { purge, yes }) => {
+            uninstall_termbrain(purge, yes).await?;
         }
         
         Some(Commands::Interactive) => {

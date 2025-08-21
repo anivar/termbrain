@@ -649,6 +649,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "hostname"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a56f203cd1c76362b69e3863fd987520ac36cf70a8c92627449b2f64a8cf7d65"
+dependencies = [
+ "cfg-if",
+ "libc",
+ "windows-link",
+]
+
+[[package]]
 name = "iana-time-zone"
 version = "0.1.63"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1716,6 +1727,7 @@ dependencies = [
  "chrono",
  "clap",
  "dirs",
+ "hostname",
  "serde",
  "serde_json",
  "termbrain-core",
@@ -1723,6 +1735,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "uuid",
 ]
 
 [[package]]
@@ -1745,6 +1758,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "chrono",
+ "hostname",
  "serde",
  "serde_json",
  "sqlite-vec",

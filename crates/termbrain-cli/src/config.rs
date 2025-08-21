@@ -35,9 +35,4 @@ impl Config {
         Ok(Self::default())
     }
     
-    pub fn config_dir() -> PathBuf {
-        dirs::home_dir()
-            .unwrap_or_default()
-            .join(".termbrain")
-    }
 }

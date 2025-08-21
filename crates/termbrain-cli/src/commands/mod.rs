@@ -2,15 +2,31 @@
 
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use std::collections::HashMap;
 use std::path::Path;
-use termbrain_core::domain::repositories::{CommandRepository, SessionRepository};
+use termbrain_core::domain::repositories::CommandRepository;
 use termbrain_core::validation::{
     validate_command, validate_path, validate_shell, validate_username, validate_hostname
 };
 use termbrain_storage::sqlite::{SqliteStorage, SqliteCommandRepository};
 use uuid::Uuid;
-use crate::{OutputFormat, ExportFormat, WorkflowAction};
+use crate::{OutputFormat, ExportFormat, WorkflowAction, config::Config};
+
+/// Create storage instance using proper database path
+async fn create_storage() -> Result<SqliteStorage> {
+    let config = Config::load()?;
+    
+    // Ensure the config directory exists
+    if let Some(parent) = config.database_path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    
+    let storage = SqliteStorage::new(&config.database_path).await?;
+    
+    // Ensure schema exists
+    storage.ensure_schema().await?;
+    
+    Ok(storage)
+}
 
 pub async fn record_command(
     command: String,
@@ -31,8 +47,8 @@ pub async fn record_command(
         path.to_string_lossy().to_string()
     };
     
-    // TODO: Use persistent storage instead of in-memory
-    let storage = SqliteStorage::in_memory().await?;
+    // Use persistent storage
+    let storage = create_storage().await?;
     let repo = SqliteCommandRepository::new(storage.pool().clone());
     
     // Parse command name and arguments
@@ -113,7 +129,7 @@ pub async fn search_commands(
         None
     };
     
-    let storage = SqliteStorage::in_memory().await?;
+    let storage = create_storage().await?;
     let repo = SqliteCommandRepository::new(storage.pool().clone());
 
     // Parse since date if provided
@@ -182,22 +198,63 @@ pub async fn show_history(
     if success_only {
         println!("   Filtering: successful commands only");
     }
-    if let Some(dir) = directory {
+    if let Some(ref dir) = directory {
         println!("   Directory: {}", dir);
     }
     
+    let storage = create_storage().await?;
+    let repo = SqliteCommandRepository::new(storage.pool().clone());
+    
+    // Get commands based on filters
+    let mut commands = if let Some(dir) = directory {
+        repo.find_by_directory(&dir).await?
+    } else {
+        repo.find_recent(limit).await?
+    };
+    
+    // Filter by success if requested
+    if success_only {
+        commands.retain(|cmd| cmd.exit_code == 0);
+    }
+    
+    // Limit results
+    commands.truncate(limit);
+    
     match format {
         OutputFormat::Table => {
+            if commands.is_empty() {
+                println!("\nNo commands found matching criteria");
+                return Ok(());
+            }
+            
             println!("\n┌────┬─────────────────────────────────────────┬─────────────────────┬──────┐");
             println!("│ #  │ Command                                 │ Time                │ Exit │");
             println!("├────┼─────────────────────────────────────────┼─────────────────────┼──────┤");
-            println!("│ 1  │ git status                              │ 2025-08-19 10:30:15│  0   │");
-            println!("│ 2  │ cargo build                             │ 2025-08-19 10:29:45│  0   │");
-            println!("│ 3  │ ls -la                                  │ 2025-08-19 10:29:30│  0   │");
+            
+            for (i, cmd) in commands.iter().enumerate() {
+                let time_str = format_relative_time(&cmd.timestamp);
+                let truncated_cmd = truncate_string(&cmd.raw, 39);
+                println!("│ {:<2} │ {:<39} │ {:<19} │ {:>4} │", 
+                    i + 1, truncated_cmd, time_str, cmd.exit_code);
+            }
+            
             println!("└────┴─────────────────────────────────────────┴─────────────────────┴──────┘");
         }
-        _ => {
-            println!("History data in {} format", format_name(&format));
+        OutputFormat::Json => {
+            println!("{}", serde_json::to_string_pretty(&commands)?);
+        }
+        OutputFormat::Csv => {
+            println!("number,command,timestamp,exit_code,directory,duration_ms");
+            for (i, cmd) in commands.iter().enumerate() {
+                println!("{},{},{},{},{},{}", 
+                    i + 1, cmd.raw, cmd.timestamp, cmd.exit_code, 
+                    cmd.working_directory, cmd.duration_ms);
+            }
+        }
+        OutputFormat::Plain => {
+            for (i, cmd) in commands.iter().enumerate() {
+                println!("{}. {} ({})", i + 1, cmd.raw, format_relative_time(&cmd.timestamp));
+            }
         }
     }
     
@@ -208,18 +265,76 @@ pub async fn show_statistics(period: String, top: usize, format: OutputFormat) -
     println!("📊 Usage Statistics ({})", period);
     println!("   Top {} commands:", top);
     
+    let storage = create_storage().await?;
+    let repo = SqliteCommandRepository::new(storage.pool().clone());
+    
+    // Get all commands for analysis
+    let commands = repo.find_recent(1000).await?; // Get a reasonable sample
+    
+    if commands.is_empty() {
+        println!("\nNo commands recorded yet");
+        return Ok(());
+    }
+    
+    // Calculate statistics
+    let mut command_stats: std::collections::HashMap<String, (usize, usize)> = std::collections::HashMap::new();
+    
+    for cmd in &commands {
+        let entry = command_stats.entry(cmd.parsed_command.clone()).or_insert((0, 0));
+        entry.0 += 1; // total count
+        if cmd.exit_code == 0 {
+            entry.1 += 1; // success count
+        }
+    }
+    
+    // Sort by frequency
+    let mut sorted_stats: Vec<_> = command_stats.into_iter().collect();
+    sorted_stats.sort_by(|a, b| b.1.0.cmp(&a.1.0));
+    sorted_stats.truncate(top);
+    
     match format {
         OutputFormat::Table => {
+            if sorted_stats.is_empty() {
+                println!("\nNo statistics available");
+                return Ok(());
+            }
+            
             println!("\n┌─────────────────────────────────────────┬───────┬─────────────────┐");
             println!("│ Command                                 │ Count │ Success Rate    │");
             println!("├─────────────────────────────────────────┼───────┼─────────────────┤");
-            println!("│ git status                              │   42  │ 100.0%         │");
-            println!("│ cargo build                             │   28  │  96.4%         │");
-            println!("│ ls                                      │   19  │ 100.0%         │");
+            
+            for (command, (total, success)) in sorted_stats {
+                let success_rate = if total > 0 { (success as f32 / total as f32) * 100.0 } else { 0.0 };
+                let truncated_cmd = truncate_string(&command, 39);
+                println!("│ {:<39} │ {:>5} │ {:>13.1}% │", 
+                    truncated_cmd, total, success_rate);
+            }
+            
             println!("└─────────────────────────────────────────┴───────┴─────────────────┘");
         }
-        _ => {
-            println!("Statistics in {} format", format_name(&format));
+        OutputFormat::Json => {
+            let stats: Vec<_> = sorted_stats.into_iter().map(|(cmd, (total, success))| {
+                serde_json::json!({
+                    "command": cmd,
+                    "count": total,
+                    "success_count": success,
+                    "success_rate": if total > 0 { (success as f32 / total as f32) * 100.0 } else { 0.0 }
+                })
+            }).collect();
+            println!("{}", serde_json::to_string_pretty(&stats)?);
+        }
+        OutputFormat::Csv => {
+            println!("command,count,success_count,success_rate");
+            for (command, (total, success)) in sorted_stats {
+                let success_rate = if total > 0 { (success as f32 / total as f32) * 100.0 } else { 0.0 };
+                println!("{},{},{},{:.1}", command, total, success, success_rate);
+            }
+        }
+        OutputFormat::Plain => {
+            for (command, (total, success)) in sorted_stats {
+                let success_rate = if total > 0 { (success as f32 / total as f32) * 100.0 } else { 0.0 };
+                println!("{}: {} times ({:.1}% success)", command, total, success_rate);
+            }
         }
     }
     
@@ -236,25 +351,89 @@ pub async fn show_patterns(
         println!("   Pattern type: {}", ptype);
     }
     
+    let storage = create_storage().await?;
+    let repo = SqliteCommandRepository::new(storage.pool().clone());
+    
+    // Get recent commands for basic pattern analysis
+    let commands = repo.find_recent(100).await?;
+    
+    if commands.len() < 3 {
+        println!("\nNot enough commands recorded for pattern detection (need at least 3)");
+        return Ok(());
+    }
+    
+    // Basic pattern detection: find command sequences
+    let mut sequences: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    
+    for window in commands.windows(3) {
+        if window.len() == 3 {
+            let pattern = format!("{} → {} → {}", 
+                window[2].parsed_command, 
+                window[1].parsed_command, 
+                window[0].parsed_command);
+            *sequences.entry(pattern).or_insert(0) += 1;
+        }
+    }
+    
+    // Filter by frequency (at least 2 occurrences) and calculate confidence
+    let mut patterns: Vec<_> = sequences.into_iter()
+        .filter(|(_, freq)| *freq >= 2)
+        .map(|(pattern, freq)| {
+            let calc_confidence = (freq as f32 / commands.len() as f32).min(1.0);
+            (pattern, calc_confidence, freq)
+        })
+        .filter(|(_, conf, _)| *conf >= confidence)
+        .collect();
+    
+    patterns.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+    
     match format {
         OutputFormat::Table => {
+            if patterns.is_empty() {
+                println!("\nNo patterns detected with confidence >= {:.1}", confidence);
+                println!("Try lowering the confidence threshold or record more commands");
+                return Ok(());
+            }
+            
             println!("\n┌─────────────────────────────────────────┬────────────┬─────────────┐");
             println!("│ Pattern                                 │ Confidence │ Frequency   │");
             println!("├─────────────────────────────────────────┼────────────┼─────────────┤");
-            println!("│ git add . → git commit → git push       │    0.92    │ 15 times    │");
-            println!("│ cargo build → cargo test                │    0.85    │ 23 times    │");
-            println!("│ cd project → git pull → npm install     │    0.78    │  8 times    │");
+            
+            for (pattern, confidence_val, frequency) in patterns {
+                let truncated_pattern = truncate_string(&pattern, 39);
+                println!("│ {:<39} │ {:>8.2}   │ {:>9} │", 
+                    truncated_pattern, confidence_val, frequency);
+            }
+            
             println!("└─────────────────────────────────────────┴────────────┴─────────────┘");
         }
-        _ => {
-            println!("Patterns in {} format", format_name(&format));
+        OutputFormat::Json => {
+            let pattern_data: Vec<_> = patterns.into_iter().map(|(pattern, conf, freq)| {
+                serde_json::json!({
+                    "pattern": pattern,
+                    "confidence": conf,
+                    "frequency": freq
+                })
+            }).collect();
+            println!("{}", serde_json::to_string_pretty(&pattern_data)?);
+        }
+        OutputFormat::Csv => {
+            println!("pattern,confidence,frequency");
+            for (pattern, conf, freq) in patterns {
+                println!("{},{:.2},{}", pattern, conf, freq);
+            }
+        }
+        OutputFormat::Plain => {
+            for (pattern, conf, freq) in patterns {
+                println!("{} (confidence: {:.2}, {} times)", pattern, conf, freq);
+            }
         }
     }
     
     Ok(())
 }
 
-pub async fn handle_workflow(action: WorkflowAction, format: OutputFormat) -> Result<()> {
+pub async fn handle_workflow(action: WorkflowAction, _format: OutputFormat) -> Result<()> {
     match action {
         WorkflowAction::List => {
             println!("🔄 Available Workflows:");
@@ -297,13 +476,288 @@ pub async fn export_data(
 }
 
 pub async fn install_shell_integration(shell: Option<String>, yes: bool) -> Result<()> {
-    let shell_type = shell.unwrap_or_else(|| "bash".to_string());
+    // Detect shell if not provided
+    let shell_type = if let Some(s) = shell {
+        s
+    } else {
+        let shell_path = std::env::var("SHELL").unwrap_or_else(|_| "/bin/bash".to_string());
+        shell_path.split('/').last().unwrap_or("bash").to_string()
+    };
+
     println!("🛠️  Installing shell integration for: {}", shell_type);
-    if yes {
-        println!("   Auto-confirming installation");
+    
+    // Validate shell
+    if !["bash", "zsh", "fish"].contains(&shell_type.as_str()) {
+        return Err(anyhow::anyhow!("Unsupported shell: {}. Supported shells: bash, zsh, fish", shell_type));
     }
-    println!("✅ Shell integration installed");
+    
+    // Get the appropriate shell integration file
+    let integration_content = match shell_type.as_str() {
+        "bash" => include_str!("../../../../shell-integration/bash/termbrain.bash"),
+        "zsh" => include_str!("../../../../shell-integration/zsh/termbrain.zsh"), 
+        "fish" => include_str!("../../../../shell-integration/fish/termbrain.fish"),
+        _ => return Err(anyhow::anyhow!("Unsupported shell: {}", shell_type)),
+    };
+    
+    // Get shell config file
+    let home_dir = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
+    let config_file = match shell_type.as_str() {
+        "bash" => home_dir.join(".bashrc"),
+        "zsh" => home_dir.join(".zshrc"),
+        "fish" => home_dir.join(".config/fish/config.fish"),
+        _ => return Err(anyhow::anyhow!("Unsupported shell: {}", shell_type)),
+    };
+    
+    // Create shell integration directory
+    let config = Config::load()?;
+    let integration_dir = config.database_path.parent().unwrap().join("shell-integration");
+    std::fs::create_dir_all(&integration_dir)?;
+    
+    // Write integration script
+    let script_name = format!("termbrain.{}", shell_type);
+    let script_path = integration_dir.join(&script_name);
+    std::fs::write(&script_path, integration_content)?;
+    
+    println!("   Created integration script: {}", script_path.display());
+    
+    // Check if already integrated
+    let source_line = match shell_type.as_str() {
+        "fish" => format!("source {}", script_path.display()),
+        _ => format!("source \"{}\"", script_path.display()),
+    };
+    
+    let config_exists = config_file.exists();
+    let already_integrated = if config_exists {
+        let existing_content = std::fs::read_to_string(&config_file)?;
+        existing_content.contains(&script_path.to_string_lossy().to_string())
+    } else {
+        false
+    };
+    
+    if already_integrated {
+        println!("   ✅ Shell integration already configured in {}", config_file.display());
+        return Ok(());
+    }
+    
+    // Ask for confirmation unless --yes flag is provided
+    if !yes {
+        println!("\n   This will add the following line to {}:", config_file.display());
+        println!("   {}", source_line);
+        print!("\n   Continue? [y/N]: ");
+        std::io::Write::flush(&mut std::io::stdout())?;
+        
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input)?;
+        
+        if !input.trim().to_lowercase().starts_with('y') {
+            println!("   Installation cancelled");
+            return Ok(());
+        }
+    }
+    
+    // Ensure config file directory exists
+    if let Some(parent) = config_file.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    
+    // Add integration to shell config
+    let integration_block = format!("\n# TermBrain shell integration\n{}\n", source_line);
+    
+    if config_exists {
+        let mut file = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&config_file)?;
+        std::io::Write::write_all(&mut file, integration_block.as_bytes())?;
+    } else {
+        std::fs::write(&config_file, integration_block)?;
+    }
+    
+    println!("   ✅ Added integration to {}", config_file.display());
+    println!("   📝 Restart your terminal or run: source {}", config_file.display());
+    
+    if shell_type == "fish" {
+        println!("   🐟 For Fish shell, the integration will be active in new sessions");
+    }
+    
+    println!("\n✅ Shell integration installed successfully!");
+    println!("   Your commands will now be automatically recorded to TermBrain");
+    
     Ok(())
+}
+
+pub async fn uninstall_termbrain(purge: bool, yes: bool) -> Result<()> {
+    println!("🗑️  TermBrain Uninstaller");
+    
+    let config = Config::load()?;
+    let termbrain_dir = config.database_path.parent().unwrap();
+    
+    // Show what will be removed
+    println!("\n   The following will be removed:");
+    
+    // Shell integration removal
+    let home_dir = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
+    let shell_configs = vec![
+        ("bash", home_dir.join(".bashrc")),
+        ("zsh", home_dir.join(".zshrc")),
+        ("fish", home_dir.join(".config/fish/config.fish")),
+    ];
+    
+    let mut found_integrations = Vec::new();
+    for (shell, config_file) in &shell_configs {
+        if config_file.exists() {
+            let content = std::fs::read_to_string(config_file)?;
+            if content.contains("TermBrain shell integration") || content.contains("termbrain") {
+                found_integrations.push((shell, config_file));
+                println!("   📝 Shell integration from {}", config_file.display());
+            }
+        }
+    }
+    
+    // TermBrain directory
+    if termbrain_dir.exists() {
+        let dir_size = get_directory_size(termbrain_dir)?;
+        if purge {
+            println!("   📁 TermBrain directory: {} ({:.1} MB)", termbrain_dir.display(), dir_size as f64 / 1024.0 / 1024.0);
+            println!("   🗄️  Command history database (PERMANENT DATA LOSS)");
+        } else {
+            println!("   📁 TermBrain installation files: {} ({:.1} MB)", termbrain_dir.display(), dir_size as f64 / 1024.0 / 1024.0);
+            println!("   📦 Database will be preserved: {}", config.database_path.display());
+        }
+    }
+    
+    // Binary location
+    if let Ok(current_exe) = std::env::current_exe() {
+        if current_exe.file_name().unwrap_or_default() == "tb" {
+            println!("   🗑️  TermBrain binary: {}", current_exe.display());
+        }
+    }
+    
+    if found_integrations.is_empty() && !termbrain_dir.exists() {
+        println!("\n   ℹ️  No TermBrain installation found");
+        return Ok(());
+    }
+    
+    // Confirmation
+    if !yes {
+        if purge {
+            println!("\n   ⚠️  WARNING: --purge flag will permanently delete all command history!");
+            print!("   Are you sure you want to completely remove TermBrain? [y/N]: ");
+        } else {
+            print!("\n   Continue with uninstallation? [y/N]: ");
+        }
+        std::io::Write::flush(&mut std::io::stdout())?;
+        
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input)?;
+        
+        if !input.trim().to_lowercase().starts_with('y') {
+            println!("   Uninstallation cancelled");
+            return Ok(());
+        }
+    }
+    
+    println!("\n   🧹 Starting cleanup...");
+    
+    // Remove shell integrations
+    for (shell, config_file) in found_integrations {
+        if let Err(e) = remove_shell_integration(config_file) {
+            println!("   ⚠️  Failed to remove {} integration: {}", shell, e);
+        } else {
+            println!("   ✅ Removed {} shell integration", shell);
+        }
+    }
+    
+    // Remove TermBrain directory
+    if termbrain_dir.exists() {
+        if purge {
+            // Remove everything
+            std::fs::remove_dir_all(termbrain_dir)?;
+            println!("   ✅ Removed TermBrain directory and all data");
+        } else {
+            // Remove everything except the database
+            for entry in std::fs::read_dir(termbrain_dir)? {
+                let entry = entry?;
+                let path = entry.path();
+                
+                // Skip the database file
+                if path == config.database_path {
+                    continue;
+                }
+                
+                if path.is_dir() {
+                    std::fs::remove_dir_all(&path)?;
+                } else {
+                    std::fs::remove_file(&path)?;
+                }
+            }
+            println!("   ✅ Removed TermBrain installation files");
+            println!("   📦 Preserved database: {}", config.database_path.display());
+        }
+    }
+    
+    println!("\n✅ TermBrain uninstallation completed!");
+    
+    if !purge {
+        println!("   💡 To remove the preserved database later, run: rm {}", config.database_path.display());
+    }
+    
+    println!("   📝 You may need to restart your terminal or run:");
+    for (_, config_file) in shell_configs {
+        if config_file.exists() {
+            println!("      source {}", config_file.display());
+            break;
+        }
+    }
+    
+    Ok(())
+}
+
+fn remove_shell_integration(config_file: &std::path::Path) -> Result<()> {
+    let content = std::fs::read_to_string(config_file)?;
+    
+    // Remove TermBrain related lines
+    let filtered_lines: Vec<&str> = content
+        .lines()
+        .filter(|line| {
+            !line.contains("TermBrain shell integration") &&
+            !line.contains("termbrain.zsh") &&
+            !line.contains("termbrain.bash") &&
+            !line.contains("termbrain.fish") &&
+            !line.trim().is_empty() ||
+            (line.trim().is_empty() && !content.lines().any(|l| l.contains("TermBrain")))
+        })
+        .collect();
+    
+    let new_content = filtered_lines.join("\n");
+    
+    // Only write if content changed
+    if new_content != content {
+        std::fs::write(config_file, new_content)?;
+    }
+    
+    Ok(())
+}
+
+fn get_directory_size(path: &std::path::Path) -> Result<u64> {
+    let mut size = 0;
+    
+    if path.is_dir() {
+        for entry in std::fs::read_dir(path)? {
+            let entry = entry?;
+            let metadata = entry.metadata()?;
+            
+            if metadata.is_dir() {
+                size += get_directory_size(&entry.path())?;
+            } else {
+                size += metadata.len();
+            }
+        }
+    } else {
+        size = std::fs::metadata(path)?.len();
+    }
+    
+    Ok(size)
 }
 
 pub async fn start_interactive_session() -> Result<()> {
@@ -316,20 +770,75 @@ pub async fn start_interactive_session() -> Result<()> {
 pub async fn show_status(format: OutputFormat) -> Result<()> {
     println!("📊 TermBrain Status");
     
+    let storage = create_storage().await?;
+    let repo = SqliteCommandRepository::new(storage.pool().clone());
+    let config = Config::load()?;
+    
+    // Get actual metrics
+    let total_commands = repo.count().await?;
+    
+    // Get database size
+    let db_size = if config.database_path.exists() {
+        let metadata = std::fs::metadata(&config.database_path)?;
+        let size_bytes = metadata.len();
+        if size_bytes < 1024 {
+            format!("{} B", size_bytes)
+        } else if size_bytes < 1024 * 1024 {
+            format!("{:.1} KB", size_bytes as f64 / 1024.0)
+        } else {
+            format!("{:.1} MB", size_bytes as f64 / (1024.0 * 1024.0))
+        }
+    } else {
+        "0 B".to_string()
+    };
+    
+    // Count unique sessions
+    let all_commands = repo.find_recent(1000).await?;
+    let unique_sessions: std::collections::HashSet<_> = all_commands.iter()
+        .map(|cmd| &cmd.session_id)
+        .collect();
+    let session_count = unique_sessions.len();
+    
+    // Get current session ID
+    let current_session = std::env::var("TERMBRAIN_SESSION_ID")
+        .unwrap_or_else(|_| "none".to_string());
+    
     match format {
         OutputFormat::Table => {
             println!("\n┌─────────────────────┬─────────────────────┐");
             println!("│ Metric              │ Value               │");
             println!("├─────────────────────┼─────────────────────┤");
-            println!("│ Commands Recorded   │ 1,234               │");
-            println!("│ Active Sessions     │ 1                   │");
-            println!("│ Patterns Detected   │ 23                  │");
-            println!("│ Workflows Created   │ 5                   │");
-            println!("│ Database Size       │ 2.3 MB              │");
+            println!("│ Commands Recorded   │ {:<19} │", total_commands);
+            println!("│ Unique Sessions     │ {:<19} │", session_count);
+            println!("│ Current Session     │ {:<19} │", truncate_string(&current_session, 19));
+            println!("│ Database Path       │ {:<19} │", truncate_string(&config.database_path.to_string_lossy(), 19));
+            println!("│ Database Size       │ {:<19} │", db_size);
             println!("└─────────────────────┴─────────────────────┘");
         }
-        _ => {
-            println!("Status in {} format", format_name(&format));
+        OutputFormat::Json => {
+            let status = serde_json::json!({
+                "commands_recorded": total_commands,
+                "unique_sessions": session_count,
+                "current_session": current_session,
+                "database_path": config.database_path,
+                "database_size": db_size
+            });
+            println!("{}", serde_json::to_string_pretty(&status)?);
+        }
+        OutputFormat::Csv => {
+            println!("metric,value");
+            println!("commands_recorded,{}", total_commands);
+            println!("unique_sessions,{}", session_count);
+            println!("current_session,{}", current_session);
+            println!("database_path,{}", config.database_path.display());
+            println!("database_size,{}", db_size);
+        }
+        OutputFormat::Plain => {
+            println!("Commands Recorded: {}", total_commands);
+            println!("Unique Sessions: {}", session_count);
+            println!("Current Session: {}", current_session);
+            println!("Database Path: {}", config.database_path.display());
+            println!("Database Size: {}", db_size);
         }
     }
     
@@ -355,14 +864,6 @@ For interactive mode: tb interactive
     Ok(())
 }
 
-fn format_name(format: &OutputFormat) -> &str {
-    match format {
-        OutputFormat::Table => "table",
-        OutputFormat::Json => "JSON",
-        OutputFormat::Csv => "CSV",
-        OutputFormat::Plain => "plain text",
-    }
-}
 
 fn format_relative_time(timestamp: &DateTime<Utc>) -> String {
     let now = Utc::now();
