@@ -1,9 +1,10 @@
 //! Command implementations
 
-use crate::{config::Config, ExportFormat, OutputFormat, WorkflowAction};
+use crate::{config::Config, ContextAction, ExportFormat, OutputFormat, WorkflowAction};
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use std::path::Path;
+use termbrain_core::domain::entities::AiSessionSummary;
 use termbrain_core::domain::repositories::CommandRepository;
 use termbrain_core::validation::{
     validate_command, validate_hostname, validate_path, validate_shell, validate_username,
@@ -429,51 +430,52 @@ pub async fn show_patterns(
     pattern_type: Option<String>,
     format: OutputFormat,
 ) -> Result<()> {
-    println!("🔄 Detected Patterns (confidence >= {:.1})", confidence);
-    if let Some(ptype) = pattern_type {
-        println!("   Pattern type: {}", ptype);
+    println!("🔄 Detecting Patterns (confidence >= {:.1})", confidence);
+    if let Some(ptype) = &pattern_type {
+        println!("   Pattern type filter: {}", ptype);
     }
 
     let storage = create_storage().await?;
     let repo = SqliteCommandRepository::new(storage.pool().clone());
 
-    // Get recent commands for basic pattern analysis
-    let commands = repo.find_recent(100).await?;
+    // Get more commands for better pattern analysis
+    let commands = repo.find_recent(500).await?;
 
     if commands.len() < 3 {
         println!("\nNot enough commands recorded for pattern detection (need at least 3)");
         return Ok(());
     }
 
-    // Basic pattern detection: find command sequences
-    let mut sequences: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    println!("   Analyzing {} commands...", commands.len());
 
-    for window in commands.windows(3) {
-        if window.len() == 3 {
-            let pattern = format!(
-                "{} → {} → {}",
-                window[2].parsed_command, window[1].parsed_command, window[0].parsed_command
-            );
-            *sequences.entry(pattern).or_insert(0) += 1;
-        }
+    // Use advanced pattern detector
+    let detector = crate::pattern_detector::PatternDetector::new(commands);
+    let mut detected_patterns = detector.detect_patterns();
+
+    // Filter by confidence
+    detected_patterns.retain(|p| p.confidence >= confidence);
+
+    // Filter by pattern type if specified
+    if let Some(ptype) = &pattern_type {
+        detected_patterns.retain(|p| {
+            let pattern_type_str = match &p.pattern_type {
+                crate::pattern_detector::PatternType::CommandSequence { .. } => "sequence",
+                crate::pattern_detector::PatternType::TimeBasedRoutine { .. } => "time",
+                crate::pattern_detector::PatternType::DirectorySpecific { .. } => "directory",
+                crate::pattern_detector::PatternType::ErrorRecovery { .. } => "error",
+                crate::pattern_detector::PatternType::BuildTest { .. } => "build",
+                crate::pattern_detector::PatternType::VersionControl { .. } => "vcs",
+                crate::pattern_detector::PatternType::FileManipulation => "file",
+                crate::pattern_detector::PatternType::SystemMaintenance => "system",
+                crate::pattern_detector::PatternType::DataProcessing => "data",
+            };
+            pattern_type_str.contains(&ptype.to_lowercase())
+        });
     }
-
-    // Filter by frequency (at least 2 occurrences) and calculate confidence
-    let mut patterns: Vec<_> = sequences
-        .into_iter()
-        .filter(|(_, freq)| *freq >= 2)
-        .map(|(pattern, freq)| {
-            let calc_confidence = (freq as f32 / commands.len() as f32).min(1.0);
-            (pattern, calc_confidence, freq)
-        })
-        .filter(|(_, conf, _)| *conf >= confidence)
-        .collect();
-
-    patterns.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
 
     match format {
         OutputFormat::Table => {
-            if patterns.is_empty() {
+            if detected_patterns.is_empty() {
                 println!(
                     "\nNo patterns detected with confidence >= {:.1}",
                     confidence
@@ -482,47 +484,145 @@ pub async fn show_patterns(
                 return Ok(());
             }
 
-            println!("\n┌─────────────────────────────────────────┬────────────┬─────────────┐");
-            println!("│ Pattern                                 │ Confidence │ Frequency   │");
-            println!("├─────────────────────────────────────────┼────────────┼─────────────┤");
+            println!("\n📊 Found {} patterns\n", detected_patterns.len());
 
-            for (pattern, confidence_val, frequency) in patterns {
-                let truncated_pattern = truncate_string(&pattern, 39);
+            // Group patterns by type
+            println!("┌─────────────────┬─────────────────────────────────────┬────────────┬───────────┐");
+            println!("│ Type            │ Description                         │ Confidence │ Frequency │");
+            println!("├─────────────────┼─────────────────────────────────────┼────────────┼───────────┤");
+
+            for pattern in &detected_patterns {
+                let type_str = match &pattern.pattern_type {
+                    crate::pattern_detector::PatternType::CommandSequence { length } => 
+                        format!("Sequence({})", length),
+                    crate::pattern_detector::PatternType::TimeBasedRoutine { hour, .. } => 
+                        format!("Time({}:00)", hour),
+                    crate::pattern_detector::PatternType::DirectorySpecific { .. } => 
+                        "Directory".to_string(),
+                    crate::pattern_detector::PatternType::ErrorRecovery { .. } => 
+                        "ErrorRecovery".to_string(),
+                    crate::pattern_detector::PatternType::BuildTest { build_tool } => 
+                        format!("Build({})", build_tool),
+                    crate::pattern_detector::PatternType::VersionControl { vcs } => 
+                        format!("VCS({})", vcs),
+                    crate::pattern_detector::PatternType::FileManipulation => 
+                        "FileOps".to_string(),
+                    crate::pattern_detector::PatternType::SystemMaintenance => 
+                        "System".to_string(),
+                    crate::pattern_detector::PatternType::DataProcessing => 
+                        "DataProc".to_string(),
+                };
+
+                let desc_str = truncate_string(&pattern.description, 35);
                 println!(
-                    "│ {:<39} │ {:>8.2}   │ {:>9} │",
-                    truncated_pattern, confidence_val, frequency
+                    "│ {:<15} │ {:<35} │ {:>8.2}   │ {:>9} │",
+                    type_str, desc_str, pattern.confidence, pattern.frequency
                 );
             }
 
-            println!("└─────────────────────────────────────────┴────────────┴─────────────┘");
-        }
-        OutputFormat::Json => {
-            let pattern_data: Vec<_> = patterns
-                .into_iter()
-                .map(|(pattern, conf, freq)| {
-                    serde_json::json!({
-                        "pattern": pattern,
-                        "confidence": conf,
-                        "frequency": freq
-                    })
-                })
-                .collect();
-            println!("{}", serde_json::to_string_pretty(&pattern_data)?);
-        }
-        OutputFormat::Csv => {
-            println!("pattern,confidence,frequency");
-            for (pattern, conf, freq) in patterns {
-                println!("{},{:.2},{}", pattern, conf, freq);
+            println!("└─────────────────┴─────────────────────────────────────┴────────────┴───────────┘");
+
+            // Show details for top patterns
+            println!("\n📋 Pattern Details (top 3):\n");
+            for (idx, pattern) in detected_patterns.iter().take(3).enumerate() {
+                println!("{}. {} (confidence: {:.2})", idx + 1, pattern.description, pattern.confidence);
+                
+                // Show pattern-specific details
+                match &pattern.pattern_type {
+                    crate::pattern_detector::PatternType::CommandSequence { length } => {
+                        println!("   Type: {}-command sequence", length);
+                        println!("   Commands: {}", pattern.commands.iter()
+                            .take(3)
+                            .map(|c| format!("'{}'", truncate_string(c, 20)))
+                            .collect::<Vec<_>>()
+                            .join(" → "));
+                        if pattern.commands.len() > 3 {
+                            println!("   ... and {} more", pattern.commands.len() - 3);
+                        }
+                    }
+                    crate::pattern_detector::PatternType::TimeBasedRoutine { hour, variance_minutes } => {
+                        println!("   Daily routine around {}:00 (±{} minutes)", hour, variance_minutes);
+                        println!("   Common commands: {}", pattern.commands.iter()
+                            .take(3)
+                            .cloned()
+                            .collect::<Vec<_>>()
+                            .join(", "));
+                    }
+                    crate::pattern_detector::PatternType::DirectorySpecific { directory } => {
+                        println!("   Directory: {}", directory);
+                        println!("   Workflow: {}", pattern.commands.join(" → "));
+                    }
+                    crate::pattern_detector::PatternType::ErrorRecovery { error_command, fix_command } => {
+                        println!("   Error: {}", error_command);
+                        println!("   Fix: {}", fix_command);
+                    }
+                    _ => {
+                        println!("   Example commands:");
+                        for cmd in pattern.commands.iter().take(3) {
+                            println!("     - {}", cmd);
+                        }
+                    }
+                }
+                
+                println!("   Success rate: {:.1}%", pattern.metadata.success_rate * 100.0);
+                println!("   First seen: {}", format_relative_time(&pattern.metadata.first_seen));
+                println!("   Last seen: {}", format_relative_time(&pattern.metadata.last_seen));
+                println!();
             }
         }
-        OutputFormat::Plain => {
-            for (pattern, conf, freq) in patterns {
-                println!("{} (confidence: {:.2}, {} times)", pattern, conf, freq);
+        OutputFormat::Json => {
+            println!("{}", serde_json::to_string_pretty(&detected_patterns)?);
+        }
+        _ => {
+            // Plain output
+            for pattern in &detected_patterns {
+                println!("{}: {} (confidence: {:.2}, frequency: {})",
+                    match &pattern.pattern_type {
+                        crate::pattern_detector::PatternType::CommandSequence { length } => 
+                            format!("Sequence[{}]", length),
+                        crate::pattern_detector::PatternType::TimeBasedRoutine { hour, .. } => 
+                            format!("Time[{}:00]", hour),
+                        crate::pattern_detector::PatternType::DirectorySpecific { directory } => 
+                            format!("Dir[{}]", shorten_path(directory)),
+                        crate::pattern_detector::PatternType::ErrorRecovery { .. } => 
+                            "ErrorRecovery".to_string(),
+                        crate::pattern_detector::PatternType::BuildTest { build_tool } => 
+                            format!("Build[{}]", build_tool),
+                        crate::pattern_detector::PatternType::VersionControl { vcs } => 
+                            format!("VCS[{}]", vcs),
+                        crate::pattern_detector::PatternType::FileManipulation => 
+                            "FileOps".to_string(),
+                        crate::pattern_detector::PatternType::SystemMaintenance => 
+                            "System".to_string(),
+                        crate::pattern_detector::PatternType::DataProcessing => 
+                            "Data".to_string(),
+                    },
+                    pattern.description,
+                    pattern.confidence,
+                    pattern.frequency
+                );
             }
         }
     }
 
+    if !detected_patterns.is_empty() {
+        println!("\n💡 Tips:");
+        println!("   • Use --pattern-type to filter: sequence, time, directory, error, build, vcs, file, system");
+        println!("   • Lower confidence threshold to see more patterns: --confidence 0.3");
+        println!("   • Patterns improve with more command history");
+    }
+
     Ok(())
+}
+
+/// Shorten long paths for display
+fn shorten_path(path: &str) -> String {
+    let parts: Vec<&str> = path.split('/').collect();
+    if parts.len() > 3 {
+        format!(".../{}", parts[parts.len()-1])
+    } else {
+        path.to_string()
+    }
 }
 
 pub async fn handle_workflow(action: WorkflowAction, _format: OutputFormat) -> Result<()> {
@@ -1247,5 +1347,464 @@ fn truncate_string(s: &str, max_len: usize) -> String {
         s.to_string()
     } else {
         format!("{}...", &s[..max_len.saturating_sub(3)])
+    }
+}
+
+/// Handle context reconstruction commands
+pub async fn handle_context(action: ContextAction, format: OutputFormat) -> Result<()> {
+    match action {
+        ContextAction::Show { session_id, format } => {
+            show_ai_session(&session_id, format).await
+        }
+        ContextAction::List { agent, limit, since } => {
+            list_ai_sessions(agent, limit, since, format).await
+        }
+        ContextAction::Export { session_id, output } => {
+            export_ai_session(&session_id, &output).await
+        }
+    }
+}
+
+/// Show details of a specific AI session
+pub async fn show_ai_session(session_id: &str, format: OutputFormat) -> Result<()> {
+    let storage = create_storage().await?;
+    let repo = termbrain_storage::sqlite::SqliteCommandRepository::new(storage.pool().clone());
+    
+    // Get all commands from this AI session
+    let commands = repo.find_by_ai_session(session_id, 1000).await?;
+    
+    if commands.is_empty() {
+        println!("❌ No commands found for AI session: {}", session_id);
+        return Ok(());
+    }
+    
+    // Group commands and analyze the session
+    let session_analysis = analyze_ai_session(&commands)?;
+    
+    match format {
+        OutputFormat::Table => {
+            display_session_table(&session_analysis);
+        }
+        OutputFormat::Json => {
+            println!("{}", serde_json::to_string_pretty(&session_analysis)?);
+        }
+        _ => {
+            display_session_table(&session_analysis);
+        }
+    }
+    
+    Ok(())
+}
+
+/// List all AI sessions
+pub async fn list_ai_sessions(
+    agent_filter: Option<String>,
+    limit: usize,
+    since: Option<String>,
+    format: OutputFormat,
+) -> Result<()> {
+    let storage = create_storage().await?;
+    let repo = termbrain_storage::sqlite::SqliteCommandRepository::new(storage.pool().clone());
+    
+    // Get AI sessions grouped by session ID
+    let sessions = repo.find_ai_sessions(agent_filter.as_deref(), limit, since).await?;
+    
+    if sessions.is_empty() {
+        println!("📭 No AI sessions found");
+        return Ok(());
+    }
+    
+    match format {
+        OutputFormat::Table => {
+            display_sessions_table(&sessions);
+        }
+        OutputFormat::Json => {
+            println!("{}", serde_json::to_string_pretty(&sessions)?);
+        }
+        _ => {
+            display_sessions_table(&sessions);
+        }
+    }
+    
+    Ok(())
+}
+
+/// Export AI session as markdown report
+pub async fn export_ai_session(session_id: &str, output_path: &str) -> Result<()> {
+    let storage = create_storage().await?;
+    let repo = termbrain_storage::sqlite::SqliteCommandRepository::new(storage.pool().clone());
+    
+    // Get all commands from this AI session
+    let commands = repo.find_by_ai_session(session_id, 1000).await?;
+    
+    if commands.is_empty() {
+        return Err(anyhow::anyhow!("No commands found for AI session: {}", session_id));
+    }
+    
+    // Analyze the session
+    let session_analysis = analyze_ai_session(&commands)?;
+    
+    // Generate markdown report
+    let markdown = generate_session_markdown(&session_analysis)?;
+    
+    // Write to file
+    std::fs::write(output_path, markdown)?;
+    
+    println!("📄 Session report exported to: {}", output_path);
+    println!("   Commands: {}", session_analysis.total_commands);
+    println!("   Duration: {}", format_duration(session_analysis.duration_minutes));
+    
+    Ok(())
+}
+
+/// Local AI Session analysis structure for CLI display
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct AiSessionAnalysis {
+    pub session_id: String,
+    pub ai_agent: String,
+    pub ai_context: Option<String>,
+    pub start_time: DateTime<Utc>,
+    pub end_time: DateTime<Utc>,
+    pub duration_minutes: u64,
+    pub total_commands: usize,
+    pub successful_commands: usize,
+    pub failed_commands: usize,
+    pub command_timeline: Vec<AiCommandSummary>,
+    pub directories_used: Vec<String>,
+    pub command_patterns: Vec<CommandPattern>,
+    pub summary: String,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct AiCommandSummary {
+    pub timestamp: DateTime<Utc>,
+    pub command: String,
+    pub directory: String,
+    pub exit_code: i32,
+    pub duration_ms: u64,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct CommandPattern {
+    pub pattern_type: String,
+    pub description: String,
+    pub commands: Vec<String>,
+}
+
+
+/// Analyze an AI session from commands
+fn analyze_ai_session(commands: &[termbrain_core::domain::entities::Command]) -> Result<AiSessionAnalysis> {
+    if commands.is_empty() {
+        return Err(anyhow::anyhow!("No commands to analyze"));
+    }
+    
+    let first = &commands[0];
+    let _last = commands.last().unwrap();
+    
+    let session_id = first.metadata.ai_session_id.clone()
+        .unwrap_or_else(|| first.session_id.clone());
+    let ai_agent = first.metadata.ai_agent.clone()
+        .unwrap_or_else(|| "unknown".to_string());
+    let ai_context = first.metadata.ai_context.clone();
+    
+    let start_time = commands.iter().map(|c| c.timestamp).min().unwrap();
+    let end_time = commands.iter().map(|c| c.timestamp).max().unwrap();
+    let duration_minutes = (end_time - start_time).num_minutes().max(0) as u64;
+    
+    let total_commands = commands.len();
+    let successful_commands = commands.iter().filter(|c| c.exit_code == 0).count();
+    let failed_commands = total_commands - successful_commands;
+    
+    // Create command timeline
+    let command_timeline: Vec<AiCommandSummary> = commands.iter().map(|cmd| {
+        AiCommandSummary {
+            timestamp: cmd.timestamp,
+            command: cmd.raw.clone(),
+            directory: cmd.working_directory.clone(),
+            exit_code: cmd.exit_code,
+            duration_ms: cmd.duration_ms,
+        }
+    }).collect();
+    
+    // Get unique directories
+    let mut directories_used: Vec<String> = commands.iter()
+        .map(|c| c.working_directory.clone())
+        .collect::<std::collections::HashSet<_>>()
+        .into_iter()
+        .collect();
+    directories_used.sort();
+    
+    // Detect command patterns
+    let command_patterns = detect_session_patterns(commands);
+    
+    // Generate summary
+    let summary = generate_session_summary(&ai_agent, &ai_context, total_commands, successful_commands, &command_patterns);
+    
+    Ok(AiSessionAnalysis {
+        session_id,
+        ai_agent,
+        ai_context,
+        start_time,
+        end_time,
+        duration_minutes,
+        total_commands,
+        successful_commands,
+        failed_commands,
+        command_timeline,
+        directories_used,
+        command_patterns,
+        summary,
+    })
+}
+
+/// Detect patterns in AI session commands
+fn detect_session_patterns(commands: &[termbrain_core::domain::entities::Command]) -> Vec<CommandPattern> {
+    let mut patterns = Vec::new();
+    
+    // Detect git workflow pattern
+    let git_commands: Vec<_> = commands.iter()
+        .filter(|c| c.parsed_command == "git")
+        .map(|c| c.raw.clone())
+        .collect();
+    
+    if git_commands.len() >= 2 {
+        patterns.push(CommandPattern {
+            pattern_type: "git_workflow".to_string(),
+            description: "Git version control operations".to_string(),
+            commands: git_commands,
+        });
+    }
+    
+    // Detect build pattern
+    let build_commands: Vec<_> = commands.iter()
+        .filter(|c| matches!(c.parsed_command.as_str(), "cargo" | "npm" | "make" | "mvn" | "gradle"))
+        .map(|c| c.raw.clone())
+        .collect();
+    
+    if !build_commands.is_empty() {
+        patterns.push(CommandPattern {
+            pattern_type: "build_process".to_string(),
+            description: "Build and compilation commands".to_string(),
+            commands: build_commands,
+        });
+    }
+    
+    // Detect file operations
+    let file_ops: Vec<_> = commands.iter()
+        .filter(|c| matches!(c.parsed_command.as_str(), "mkdir" | "touch" | "rm" | "mv" | "cp"))
+        .map(|c| c.raw.clone())
+        .collect();
+    
+    if !file_ops.is_empty() {
+        patterns.push(CommandPattern {
+            pattern_type: "file_operations".to_string(),
+            description: "File and directory manipulations".to_string(),
+            commands: file_ops,
+        });
+    }
+    
+    patterns
+}
+
+/// Generate a human-readable summary
+fn generate_session_summary(
+    ai_agent: &str,
+    ai_context: &Option<String>,
+    total_commands: usize,
+    successful_commands: usize,
+    patterns: &[CommandPattern]
+) -> String {
+    let mut summary = format!(
+        "AI agent '{}' executed {} commands with {:.1}% success rate",
+        ai_agent,
+        total_commands,
+        (successful_commands as f32 / total_commands as f32) * 100.0
+    );
+    
+    if let Some(context) = ai_context {
+        summary.push_str(&format!(". Context: {}", context));
+    }
+    
+    if !patterns.is_empty() {
+        summary.push_str(&format!(". Detected patterns: {}", 
+            patterns.iter().map(|p| p.pattern_type.as_str()).collect::<Vec<_>>().join(", ")));
+    }
+    
+    summary
+}
+
+/// Display session analysis as table
+fn display_session_table(analysis: &AiSessionAnalysis) {
+    println!("🤖 AI Session Analysis: {}", analysis.session_id);
+    println!();
+    
+    // Session overview
+    println!("📊 Session Overview");
+    println!("┌─────────────────────┬─────────────────────────────────────┐");
+    println!("│ AI Agent            │ {:35} │", analysis.ai_agent);
+    if let Some(context) = &analysis.ai_context {
+        println!("│ Context             │ {:35} │", truncate_string(context, 35));
+    }
+    println!("│ Duration            │ {:35} │", format_duration(analysis.duration_minutes));
+    println!("│ Commands            │ {:35} │", analysis.total_commands);
+    println!("│ Success Rate        │ {:35} │", 
+        format!("{:.1}% ({}/{})", 
+            (analysis.successful_commands as f32 / analysis.total_commands as f32) * 100.0,
+            analysis.successful_commands,
+            analysis.total_commands
+        )
+    );
+    println!("└─────────────────────┴─────────────────────────────────────┘");
+    
+    println!();
+    
+    // Command timeline (show first 10 and last 5)
+    println!("📝 Command Timeline");
+    let timeline_len = analysis.command_timeline.len();
+    let show_commands: Vec<AiCommandSummary> = if timeline_len <= 15 {
+        analysis.command_timeline.clone()
+    } else {
+        let mut cmds = analysis.command_timeline.iter().take(10).cloned().collect::<Vec<_>>();
+        if timeline_len > 15 {
+            cmds.push(AiCommandSummary {
+                timestamp: analysis.start_time,
+                command: format!("... {} more commands ...", timeline_len - 15),
+                directory: "".to_string(),
+                exit_code: 0,
+                duration_ms: 0,
+            });
+        }
+        cmds.extend(analysis.command_timeline.iter().skip(timeline_len - 5).cloned());
+        cmds
+    };
+    
+    println!("┌─────────────┬─────────────────────────────────────────────┬──────┐");
+    println!("│ Time        │ Command                                     │ Exit │");
+    println!("├─────────────┼─────────────────────────────────────────────┼──────┤");
+    
+    for cmd in &show_commands {
+        let time_str = format_relative_time(&cmd.timestamp);
+        let cmd_str = truncate_string(&cmd.command, 43);
+        let exit_str = if cmd.exit_code == 0 { "✅" } else { "❌" };
+        println!("│ {:11} │ {:43} │ {:4} │", time_str, cmd_str, exit_str);
+    }
+    
+    println!("└─────────────┴─────────────────────────────────────────────┴──────┘");
+    
+    // Patterns
+    if !analysis.command_patterns.is_empty() {
+        println!();
+        println!("🔍 Detected Patterns");
+        for pattern in &analysis.command_patterns {
+            println!("• {}: {} commands", pattern.description, pattern.commands.len());
+        }
+    }
+    
+    println!();
+    println!("💡 {}", analysis.summary);
+}
+
+/// Display sessions list as table
+fn display_sessions_table(sessions: &[AiSessionSummary]) {
+    println!("🤖 AI Sessions ({} found)", sessions.len());
+    println!();
+    
+    println!("┌─────────────────────────────┬──────────┬─────────────┬──────┬─────────┐");
+    println!("│ Session ID                  │ Agent    │ Started     │ Cmds │ Success │");
+    println!("├─────────────────────────────┼──────────┼─────────────┼──────┼─────────┤");
+    
+    for session in sessions {
+        let session_id_str = truncate_string(&session.session_id, 27);
+        let agent_str = truncate_string(&session.ai_agent, 8);
+        let started_str = format_relative_time(&session.start_time);
+        let success_str = format!("{:.0}%", session.success_rate * 100.0);
+        
+        println!("│ {:27} │ {:8} │ {:11} │ {:4} │ {:7} │", 
+            session_id_str, agent_str, started_str, session.command_count, success_str);
+    }
+    
+    println!("└─────────────────────────────┴──────────┴─────────────┴──────┴─────────┘");
+}
+
+/// Generate markdown report for session
+fn generate_session_markdown(analysis: &AiSessionAnalysis) -> Result<String> {
+    let mut md = String::new();
+    
+    md.push_str(&format!("# AI Session Report: {}\n\n", analysis.session_id));
+    
+    // Metadata
+    md.push_str("## Session Information\n\n");
+    md.push_str(&format!("- **AI Agent**: {}\n", analysis.ai_agent));
+    if let Some(context) = &analysis.ai_context {
+        md.push_str(&format!("- **Context**: {}\n", context));
+    }
+    md.push_str(&format!("- **Start Time**: {}\n", analysis.start_time.format("%Y-%m-%d %H:%M:%S UTC")));
+    md.push_str(&format!("- **End Time**: {}\n", analysis.end_time.format("%Y-%m-%d %H:%M:%S UTC")));
+    md.push_str(&format!("- **Duration**: {}\n", format_duration(analysis.duration_minutes)));
+    md.push_str(&format!("- **Total Commands**: {}\n", analysis.total_commands));
+    md.push_str(&format!("- **Success Rate**: {:.1}% ({}/{})\n\n", 
+        (analysis.successful_commands as f32 / analysis.total_commands as f32) * 100.0,
+        analysis.successful_commands,
+        analysis.total_commands
+    ));
+    
+    // Summary
+    md.push_str("## Summary\n\n");
+    md.push_str(&format!("{}\n\n", analysis.summary));
+    
+    // Patterns
+    if !analysis.command_patterns.is_empty() {
+        md.push_str("## Detected Patterns\n\n");
+        for pattern in &analysis.command_patterns {
+            md.push_str(&format!("### {}\n\n", pattern.description));
+            md.push_str("```bash\n");
+            for cmd in &pattern.commands {
+                md.push_str(&format!("{}\n", cmd));
+            }
+            md.push_str("```\n\n");
+        }
+    }
+    
+    // Command timeline
+    md.push_str("## Command Timeline\n\n");
+    md.push_str("| Time | Directory | Command | Exit Code |\n");
+    md.push_str("|------|-----------|---------|----------|\n");
+    
+    for cmd in &analysis.command_timeline {
+        let time_str = cmd.timestamp.format("%H:%M:%S");
+        let dir_short = cmd.directory.split('/').last().unwrap_or(&cmd.directory);
+        md.push_str(&format!("| {} | {} | `{}` | {} |\n", 
+            time_str, 
+            dir_short,
+            cmd.command.replace('|', "\\|"),
+            if cmd.exit_code == 0 { "✅" } else { "❌" }
+        ));
+    }
+    
+    md.push_str("\n---\n");
+    md.push_str(&format!("*Report generated by TermBrain v{} on {}*\n", 
+        env!("CARGO_PKG_VERSION"),
+        Utc::now().format("%Y-%m-%d %H:%M:%S UTC")
+    ));
+    
+    Ok(md)
+}
+
+/// Format duration in a human readable way
+fn format_duration(minutes: u64) -> String {
+    if minutes == 0 {
+        "< 1 minute".to_string()
+    } else if minutes < 60 {
+        format!("{} minute{}", minutes, if minutes == 1 { "" } else { "s" })
+    } else {
+        let hours = minutes / 60;
+        let remaining_minutes = minutes % 60;
+        if remaining_minutes == 0 {
+            format!("{} hour{}", hours, if hours == 1 { "" } else { "s" })
+        } else {
+            format!("{} hour{} {} minute{}", 
+                hours, if hours == 1 { "" } else { "s" },
+                remaining_minutes, if remaining_minutes == 1 { "" } else { "s" })
+        }
     }
 }

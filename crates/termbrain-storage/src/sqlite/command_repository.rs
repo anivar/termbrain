@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::{Row, SqlitePool};
 use std::collections::HashMap;
-use termbrain_core::domain::{Command, CommandMetadata, CommandRepository};
+use termbrain_core::domain::{AiSessionSummary, Command, CommandMetadata, CommandRepository};
 use uuid::Uuid;
 
 pub struct SqliteCommandRepository {
@@ -370,6 +370,136 @@ impl SqliteCommandRepository {
 
         self.rows_to_commands(results)
     }
+
+    /// Find commands by AI session ID
+    pub async fn find_by_ai_session(&self, ai_session_id: &str, limit: usize) -> Result<Vec<Command>> {
+        let sql = format!(
+            r#"SELECT {} 
+               FROM commands 
+               WHERE ai_session_id = ?
+               ORDER BY timestamp ASC
+               LIMIT ?"#,
+            Self::COMMAND_FIELDS
+        );
+
+        let results = sqlx::query(&sql)
+            .bind(ai_session_id)
+            .bind(limit as i64)
+            .fetch_all(&self.pool)
+            .await?;
+
+        self.rows_to_commands(results)
+    }
+
+    /// Find AI sessions with summary information
+    pub async fn find_ai_sessions(
+        &self, 
+        agent_filter: Option<&str>, 
+        limit: usize, 
+        since: Option<String>
+    ) -> Result<Vec<AiSessionSummary>> {
+        let mut where_clause = "WHERE ai_session_id IS NOT NULL".to_string();
+        let mut bind_params = Vec::new();
+
+        if let Some(agent) = agent_filter {
+            where_clause.push_str(" AND ai_agent = ?");
+            bind_params.push(agent);
+        }
+
+        let since_time_rfc3339;
+        if let Some(since_str) = since {
+            let since_time = parse_date_input(&since_str)?;
+            since_time_rfc3339 = since_time.to_rfc3339();
+            where_clause.push_str(" AND timestamp >= ?");
+            bind_params.push(&since_time_rfc3339);
+        }
+
+        let sql = format!(
+            r#"SELECT 
+                ai_session_id,
+                ai_agent,
+                ai_context,
+                MIN(timestamp) as start_time,
+                COUNT(*) as command_count,
+                (julianday(MAX(timestamp)) - julianday(MIN(timestamp))) * 24 * 60 as duration_minutes,
+                CAST(SUM(CASE WHEN exit_code = 0 THEN 1.0 ELSE 0.0 END) / COUNT(*) AS REAL) as success_rate
+               FROM commands
+               {}
+               GROUP BY ai_session_id
+               ORDER BY start_time DESC
+               LIMIT ?"#,
+            where_clause
+        );
+
+        let mut query = sqlx::query(&sql);
+        
+        for param in &bind_params {
+            query = query.bind(param);
+        }
+        query = query.bind(limit as i64);
+
+        let rows = query.fetch_all(&self.pool).await?;
+
+        let mut sessions = Vec::new();
+        for row in rows {
+            let session_id: String = row.get("ai_session_id");
+            let ai_agent: String = row.get("ai_agent");
+            let ai_context: Option<String> = row.get("ai_context");
+            let start_time_str: String = row.get("start_time");
+            let command_count: i64 = row.get("command_count");
+            let duration_minutes: f64 = row.get("duration_minutes");
+            let success_rate: f64 = row.get("success_rate");
+
+            let start_time = DateTime::parse_from_rfc3339(&start_time_str)?.with_timezone(&Utc);
+
+            sessions.push(AiSessionSummary {
+                session_id,
+                ai_agent,
+                ai_context,
+                start_time,
+                command_count: command_count as usize,
+                duration_minutes: duration_minutes.max(0.0) as u64,
+                success_rate: success_rate as f32,
+            });
+        }
+
+        Ok(sessions)
+    }
+}
+
+/// Parse date input from various formats
+fn parse_date_input(date_str: &str) -> Result<DateTime<Utc>> {
+    // Handle relative dates
+    if date_str.ends_with(" ago") {
+        let parts: Vec<&str> = date_str.trim_end_matches(" ago").split_whitespace().collect();
+        if parts.len() >= 2 {
+            let amount: u64 = parts[0].parse()?;
+            let unit = parts[1].to_lowercase();
+            
+            let duration = match unit.as_str() {
+                "day" | "days" => chrono::Duration::days(amount as i64),
+                "hour" | "hours" => chrono::Duration::hours(amount as i64),
+                "minute" | "minutes" => chrono::Duration::minutes(amount as i64),
+                "week" | "weeks" => chrono::Duration::weeks(amount as i64),
+                "month" | "months" => chrono::Duration::days((amount * 30) as i64),
+                "year" | "years" => chrono::Duration::days((amount * 365) as i64),
+                _ => return Err(anyhow::anyhow!("Unknown time unit: {}", unit)),
+            };
+            
+            return Ok(Utc::now() - duration);
+        }
+    }
+    
+    // Handle absolute dates
+    if let Ok(parsed) = DateTime::parse_from_rfc3339(date_str) {
+        return Ok(parsed.with_timezone(&Utc));
+    }
+    
+    if let Ok(parsed) = chrono::NaiveDate::parse_from_str(date_str, "%Y-%m-%d") {
+        return Ok(parsed.and_hms_opt(0, 0, 0).unwrap().and_utc());
+    }
+    
+    Err(anyhow::anyhow!("Cannot parse date: {}", date_str))
 }
 
 #[cfg(test)]

@@ -6,6 +6,7 @@ mod config;
 mod logging;
 mod garbage_collector;
 mod shutdown;
+mod pattern_detector;
 
 use commands::*;
 use shutdown::ShutdownManager;
@@ -188,12 +189,57 @@ enum Commands {
         command: Vec<String>,
     },
 
+    /// Analyze AI session context and reconstruction
+    #[command(alias = "ctx")]
+    Context {
+        #[command(subcommand)]
+        action: ContextAction,
+    },
+
     /// Start interactive session
     #[command(alias = "i")]
     Interactive,
 
     /// Show system status
     Status,
+}
+
+#[derive(Subcommand)]
+enum ContextAction {
+    /// Show specific AI session details
+    Show {
+        /// AI session ID to analyze
+        session_id: String,
+        
+        /// Export format
+        #[arg(short, long, value_enum, default_value = "table")]
+        format: OutputFormat,
+    },
+    
+    /// List all AI sessions
+    List {
+        /// AI agent to filter by
+        #[arg(short, long)]
+        agent: Option<String>,
+        
+        /// Number of sessions to show
+        #[arg(short, long, default_value = "20")]
+        limit: usize,
+        
+        /// Show sessions since date
+        #[arg(long)]
+        since: Option<String>,
+    },
+    
+    /// Export session as markdown report
+    Export {
+        /// AI session ID to export
+        session_id: String,
+        
+        /// Output file path
+        #[arg(short, long)]
+        output: String,
+    },
 }
 
 #[derive(Subcommand)]
@@ -305,6 +351,10 @@ async fn main() -> Result<()> {
 
         Some(Commands::Workflow { action }) => {
             handle_workflow(action, cli.format).await?;
+        }
+
+        Some(Commands::Context { action }) => {
+            handle_context(action, cli.format).await?;
         }
 
         Some(Commands::Export {
