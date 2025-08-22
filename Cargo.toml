@@ -10,7 +10,7 @@ license = "MIT"
 repository = "https://github.com/anivar/termbrain"
 
 [workspace.dependencies]
-tokio = { version = "1.40", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1.40", features = ["rt-multi-thread", "macros", "process", "signal"] }
 anyhow = "1.0"
 thiserror = "1.0"
 serde = { version = "1.0", features = ["derive"] }

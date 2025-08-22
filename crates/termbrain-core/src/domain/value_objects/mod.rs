@@ -10,15 +10,15 @@ impl ShellType {
     pub fn new(shell: impl Into<String>) -> Self {
         Self(shell.into())
     }
-    
+
     pub fn bash() -> Self {
         Self("bash".to_string())
     }
-    
+
     pub fn zsh() -> Self {
         Self("zsh".to_string())
     }
-    
+
     pub fn fish() -> Self {
         Self("fish".to_string())
     }

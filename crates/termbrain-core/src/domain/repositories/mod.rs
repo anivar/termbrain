@@ -1,9 +1,9 @@
 //! Repository trait definitions
 
+use super::entities::{Command, Pattern, Session, Workflow};
 use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use super::entities::{Command, Session, Pattern, Workflow};
 
 #[async_trait]
 pub trait CommandRepository: Send + Sync {
@@ -13,8 +13,18 @@ pub trait CommandRepository: Send + Sync {
     async fn find_recent(&self, limit: usize) -> Result<Vec<Command>>;
     async fn find_by_pattern(&self, pattern: &str) -> Result<Vec<Command>>;
     async fn find_by_directory(&self, directory: &str) -> Result<Vec<Command>>;
-    async fn find_by_time_range(&self, start: DateTime<Utc>, end: DateTime<Utc>) -> Result<Vec<Command>>;
-    async fn search(&self, query: &str, limit: usize, directory: Option<&str>, since: Option<DateTime<Utc>>) -> Result<Vec<Command>>;
+    async fn find_by_time_range(
+        &self,
+        start: DateTime<Utc>,
+        end: DateTime<Utc>,
+    ) -> Result<Vec<Command>>;
+    async fn search(
+        &self,
+        query: &str,
+        limit: usize,
+        directory: Option<&str>,
+        since: Option<DateTime<Utc>>,
+    ) -> Result<Vec<Command>>;
     async fn search_semantic(&self, query: &str, limit: usize) -> Result<Vec<Command>>;
     async fn delete_by_id(&self, id: &uuid::Uuid) -> Result<()>;
     async fn count(&self) -> Result<usize>;
