@@ -12,6 +12,104 @@ if not command -v tb >/dev/null 2>&1
     exit 1
 end
 
+# Function to detect AI agents
+function _termbrain_detect_ai_agent
+    # Check if already wrapped by tb wrap
+    if test -n "$TERMBRAIN_AI_WRAPPED"
+        return 0
+    end
+    
+    # Check for common AI agent environment variables
+    if test -n "$AIDER_CHAT_ID"
+        set -gx TERMBRAIN_AI_AGENT "aider"
+        set -gx TERMBRAIN_AI_SESSION "$AIDER_CHAT_ID"
+        return 0
+    end
+    
+    if test -n "$CURSOR_SESSION_ID" -o -n "$CURSOR_CONTEXT"
+        set -gx TERMBRAIN_AI_AGENT "cursor"
+        set -gx TERMBRAIN_AI_SESSION (test -n "$CURSOR_SESSION_ID"; and echo "$CURSOR_SESSION_ID"; or echo "$CURSOR_CONTEXT")
+        return 0
+    end
+    
+    if test -n "$CONTINUE_SESSION" -o -n "$CONTINUE_CONTEXT_ID"
+        set -gx TERMBRAIN_AI_AGENT "continue"
+        set -gx TERMBRAIN_AI_SESSION (test -n "$CONTINUE_SESSION"; and echo "$CONTINUE_SESSION"; or echo "$CONTINUE_CONTEXT_ID")
+        return 0
+    end
+    
+    if test -n "$CODY_SESSION_ID" -o -n "$CODY_AGENT"
+        set -gx TERMBRAIN_AI_AGENT "cody"
+        set -gx TERMBRAIN_AI_SESSION (test -n "$CODY_SESSION_ID"; and echo "$CODY_SESSION_ID"; or echo "$CODY_AGENT")
+        return 0
+    end
+    
+    if test -n "$COPILOT_SESSION" -o -n "$GITHUB_COPILOT_CHAT"
+        set -gx TERMBRAIN_AI_AGENT "copilot"
+        set -gx TERMBRAIN_AI_SESSION (test -n "$COPILOT_SESSION"; and echo "$COPILOT_SESSION"; or echo "$GITHUB_COPILOT_CHAT")
+        return 0
+    end
+    
+    if test -n "$CLAUDE_SESSION_ID" -o -n "$ANTHROPIC_SESSION_ID" -o -n "$CLAUDE_CONVERSATION_ID"
+        set -gx TERMBRAIN_AI_AGENT "claude"
+        set -gx TERMBRAIN_AI_SESSION (test -n "$CLAUDE_SESSION_ID"; and echo "$CLAUDE_SESSION_ID"; or test -n "$ANTHROPIC_SESSION_ID"; and echo "$ANTHROPIC_SESSION_ID"; or echo "$CLAUDE_CONVERSATION_ID")
+        return 0
+    end
+    
+    if test -n "$GEMINI_SESSION_ID" -o -n "$GOOGLE_AI_SESSION" -o -n "$BARD_SESSION_ID"
+        set -gx TERMBRAIN_AI_AGENT "gemini"
+        set -gx TERMBRAIN_AI_SESSION (test -n "$GEMINI_SESSION_ID"; and echo "$GEMINI_SESSION_ID"; or test -n "$GOOGLE_AI_SESSION"; and echo "$GOOGLE_AI_SESSION"; or echo "$BARD_SESSION_ID")
+        return 0
+    end
+    
+    # Check process tree for AI agents - Fish implementation
+    set -l current_pid %self
+    set -l max_depth 10
+    set -l depth 0
+    
+    while test $depth -lt $max_depth
+        set current_pid (ps -o ppid= -p "$current_pid" 2>/dev/null | string trim)
+        test -z "$current_pid" -o "$current_pid" = "1"; and break
+        
+        set -l process_name (ps -o comm= -p "$current_pid" 2>/dev/null | string trim)
+        
+        switch "$process_name"
+            case "*aider*" "*Aider*"
+                set -gx TERMBRAIN_AI_AGENT "aider"
+                set -gx TERMBRAIN_AI_SESSION "pid-$current_pid"
+                return 0
+            case "*cursor*" "*Cursor*"
+                set -gx TERMBRAIN_AI_AGENT "cursor"
+                set -gx TERMBRAIN_AI_SESSION "pid-$current_pid"
+                return 0
+            case "*continue*" "*Continue*"
+                set -gx TERMBRAIN_AI_AGENT "continue"
+                set -gx TERMBRAIN_AI_SESSION "pid-$current_pid"
+                return 0
+            case "*cody*" "*Cody*"
+                set -gx TERMBRAIN_AI_AGENT "cody"
+                set -gx TERMBRAIN_AI_SESSION "pid-$current_pid"
+                return 0
+            case "*copilot*" "*Copilot*"
+                set -gx TERMBRAIN_AI_AGENT "copilot"
+                set -gx TERMBRAIN_AI_SESSION "pid-$current_pid"
+                return 0
+            case "*claude*" "*Claude*" "*anthropic*"
+                set -gx TERMBRAIN_AI_AGENT "claude"
+                set -gx TERMBRAIN_AI_SESSION "pid-$current_pid"
+                return 0
+            case "*gemini*" "*Gemini*" "*bard*" "*Bard*"
+                set -gx TERMBRAIN_AI_AGENT "gemini"
+                set -gx TERMBRAIN_AI_SESSION "pid-$current_pid"
+                return 0
+        end
+        
+        set depth (math $depth + 1)
+    end
+    
+    return 1
+end
+
 # Function to record command execution
 function _termbrain_record_command --on-event fish_postexec
     set -l exit_code $status
@@ -20,6 +118,9 @@ function _termbrain_record_command --on-event fish_postexec
     # Skip if termbrain is disabled
     test "$TERMBRAIN_ENABLED" != "1"; and return $exit_code
     test "$TERMBRAIN_AUTO_RECORD" != "1"; and return $exit_code
+    
+    # Detect AI agents if not already set
+    _termbrain_detect_ai_agent
     
     # Get the command that was just executed
     set -l last_command $argv[1]
@@ -73,6 +174,9 @@ function termbrain_disable
 end
 
 function termbrain_status
+    # Detect AI agent before showing status
+    _termbrain_detect_ai_agent
+    
     echo "TermBrain Status:"
     echo "  Enabled: $TERMBRAIN_ENABLED"
     echo "  Auto-record: $TERMBRAIN_AUTO_RECORD"
@@ -80,6 +184,13 @@ function termbrain_status
     echo "  Shell: $SHELL"
     echo "  PWD: $PWD"
     echo "  Fish Version: $FISH_VERSION"
+    
+    # Show AI agent info if detected
+    if test -n "$TERMBRAIN_AI_AGENT"
+        echo "  AI Agent: $TERMBRAIN_AI_AGENT"
+        echo "  AI Session: "(test -n "$TERMBRAIN_AI_SESSION"; and echo "$TERMBRAIN_AI_SESSION"; or echo "N/A")
+        test -n "$TERMBRAIN_AI_CONTEXT"; and echo "  AI Context: $TERMBRAIN_AI_CONTEXT"
+    end
 end
 
 # Aliases for convenience

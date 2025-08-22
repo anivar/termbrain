@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Termbrain will be documented in this file.
+All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -8,109 +8,77 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Next features and improvements will be listed here
-
-## [1.0.1] - 2025-08-17
-
-### Added
-- 📤 **Export Functionality**
-  - Export command history in multiple formats (JSON, CSV, Markdown, SQL)
-  - Export workflows as JSON or executable shell scripts
-  - Query-based filtering for exports
-  - Automatic sensitive data exclusion from exports
-- 🗑️ **Uninstaller Script**
-  - Safe removal of Termbrain with data backup option
-  - Shell configuration cleanup with backup
-  - Optional command history export before uninstall
-
-### Fixed
-- Flow state persistence between command invocations
-- Intention tracking state persistence
-- Database migration messages redirected to stderr
-- Clean architecture refactoring (100% complete)
-- Removed version from code (now only in VERSION file)
+- AI agent detection and tracking capabilities
+- `tb wrap` command for explicit AI agent monitoring
+- AI agent filtering in history with `--ai-agent` flag
+- Automatic detection of Claude, Gemini, Aider, Cursor, Continue, Cody, and Copilot
+- Environment variable detection for AI sessions
+- Process tree scanning for AI agent detection
+- AI metadata fields in command records (ai_agent, ai_session_id, ai_context)
+- Configuration file support with TOML format
+- Multiple config path locations with priority loading
+- Environment variable overrides for all config settings
+- Full export functionality (JSON, CSV, Markdown formats)
+- Date filtering for exports with relative and absolute dates
+- Maximum database size configuration with auto-cleanup
+- Comprehensive logging with structured JSON output
+- Log rotation with daily files and 7-day retention
+- Database garbage collection with size and age-based cleanup
+- Graceful shutdown with SIGTERM/SIGINT handling
+- Automatic cleanup of logs and temporary files
+- Database vacuum operations for space reclamation
 
 ### Changed
-- Version now read from single VERSION file
-- Enhanced help documentation with export examples
+- Improved error handling throughout the codebase
+- Enhanced database persistence and stability
+- Optimized build process
 
-## [1.0.0] - 2025-08-17
+### Security
+- Comprehensive input validation for all user inputs
+- SQL injection protection with parameterized queries
+- Command injection prevention in shell integration
+- Path traversal protection with safe path validation
+
+## [2.0.0-alpha.1] - 2024-01-21
 
 ### Added
-- 🧠 **Core Memory System**
-  - Automatic command capture with preexec/precmd hooks
-  - Semantic command analysis (git, npm, docker, testing, etc.)
-  - Smart project type detection
-  - Error tracking and solution learning
-  - Pattern detection for workflow automation
-  - Privacy controls with sensitive data detection
+- Complete rewrite in Rust for performance and safety
+- Three-layer architecture (CLI, Core Domain, Storage)
+- SQLite storage with connection pooling
+- Multi-shell support (bash, zsh, fish)
+- Async operations with Tokio runtime
+- Basic command recording and search functionality
+- Command history with filtering options
+- Statistics and pattern detection
+- Export functionality placeholders (actual export not implemented)
+- Shell integration with automatic command capture
+- Uninstall command with cleanup options
+- Workflow management placeholders (not functional)
+- Basic pattern detection (3-command sequences only)
 
-- 🔍 **Search & Analytics**
-  - Interactive FZF-powered search
-  - Command usage statistics
-  - Performance metrics
-  - Error rate analysis
-  - Workflow pattern discovery
+### Changed
+- Migrated from shell-based implementation to Rust
+- Replaced file-based storage with SQLite database
+- Improved security with input validation
+- Enhanced performance with optimized queries
 
-- 🤖 **AI Integration**
-  - Context generation for AI assistants
-  - Creates .ai-context.md file with relevant history
-  - Provider-specific file naming (experimental)
-
-- 🛡️ **Privacy & Security**
-  - 100% local storage
-  - Automatic secret redaction
-  - Pause recording mode
-  - Data export capabilities
-  - Configurable privacy settings
-
-- 🐚 **Shell Support**
-  - Full Bash support (4.0+)
-  - Full Zsh support (5.0+)
-  - Cross-platform (macOS, Linux)
-
-- 📦 **Distribution**
-  - Git-based installation
-  - Automated installer script
-  - Basic test suite
-
-### Technical Details
-- SQLite-based storage for reliability and performance
-- Simple architecture with room for growth
-- Minimal dependencies (sqlite3 and jq required)
-- Test framework included
-- Documentation included
+### Deprecated
+- Shell-based v1.x version is now deprecated
 
 ### Known Issues
-- Fish shell support not yet implemented
-- Windows support not yet available
-- Some terminal emulators may have issues with ANSI colors
+- Configuration loading returns defaults only
+- No database migration system beyond initial schema
+- Limited error handling in some areas
+- No backup/restore functionality
+- No data retention policies
 
-## [0.9.0-beta] - 2024-01-XX (Pre-release)
+## [1.0.0] - 2023-XX-XX (Legacy Shell Version)
 
 ### Added
-- Initial beta release for testing
-- Core command capture functionality
-- Basic AI context generation
-- Simple analytics
+- Initial shell-based implementation
+- Basic command recording
+- Simple search functionality
+- Bash integration
 
-### Changed
-- Migrated from dotfiles-context project
-- Rebranded as Termbrain
-
-### Fixed
-- SQL injection vulnerabilities
-- Memory leaks in long-running sessions
-
-## Development History
-
-This project evolved from:
-- `dotfiles-context` - Original proof of concept
-- Added automatic command capture
-- Added semantic understanding
-- Added cognitive features
-- Complete rewrite for production readiness
-
----
-
-For more details on each release, see the [GitHub Releases](https://github.com/anivar/termbrain/releases) page.
+### Deprecated
+- This version is now deprecated in favor of v2.0 Rust implementation
