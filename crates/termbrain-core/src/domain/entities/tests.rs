@@ -2,7 +2,7 @@
 mod tests {
     use super::super::*;
     use chrono::Utc;
-    
+
     #[test]
     fn test_command_creation() {
         let cmd = Command {
@@ -21,13 +21,16 @@ mod tests {
                 hostname: "localhost".to_string(),
                 terminal: "xterm-256color".to_string(),
                 environment: std::collections::HashMap::new(),
+                ai_agent: None,
+                ai_session_id: None,
+                ai_context: None,
             },
         };
-        
+
         assert_eq!(cmd.parsed_command, "git");
         assert_eq!(cmd.exit_code, 0);
     }
-    
+
     #[test]
     fn test_pattern_types() {
         let seq_pattern = PatternType::CommandSequence(vec![
@@ -35,7 +38,7 @@ mod tests {
             "git pull".to_string(),
             "cargo test".to_string(),
         ]);
-        
+
         matches!(seq_pattern, PatternType::CommandSequence(_));
     }
 }

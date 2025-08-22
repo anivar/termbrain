@@ -13,7 +13,10 @@ CREATE TABLE IF NOT EXISTS commands (
     user TEXT NOT NULL,
     hostname TEXT NOT NULL,
     terminal TEXT NOT NULL,
-    environment TEXT NOT NULL -- JSON object
+    environment TEXT NOT NULL, -- JSON object
+    ai_agent TEXT,
+    ai_session_id TEXT,
+    ai_context TEXT
 );
 
 -- Create sessions table

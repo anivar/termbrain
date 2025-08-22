@@ -25,6 +25,9 @@ pub struct CommandMetadata {
     pub hostname: String,
     pub terminal: String,
     pub environment: HashMap<String, String>,
+    pub ai_agent: Option<String>,
+    pub ai_session_id: Option<String>,
+    pub ai_context: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

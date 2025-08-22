@@ -1,284 +1,239 @@
-# Contributing to Termbrain
+# Contributing to TermBrain
 
-First off, thank you for considering contributing to Termbrain! 🧠 It's people like you that make Termbrain such a great tool.
-
-## Table of Contents
-
-- [Code of Conduct](#code-of-conduct)
-- [Getting Started](#getting-started)
-- [How Can I Contribute?](#how-can-i-contribute)
-- [Development Setup](#development-setup)
-- [Style Guidelines](#style-guidelines)
-- [Testing](#testing)
-- [Pull Request Process](#pull-request-process)
-- [Community](#community)
+Thank you for your interest in contributing to TermBrain! This document provides guidelines and instructions for contributing.
 
 ## Code of Conduct
 
-This project and everyone participating in it is governed by the [Termbrain Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
+By participating in this project, you agree to abide by our Code of Conduct:
+- Be respectful and inclusive
+- Welcome newcomers and help them get started
+- Focus on constructive criticism
+- Respect differing viewpoints and experiences
 
-## Getting Started
+## How to Contribute
 
-1. Fork the repository
-2. Clone your fork: `git clone https://github.com/YOUR-USERNAME/termbrain.git`
-3. Add upstream remote: `git remote add upstream https://github.com/anivar/termbrain.git`
-4. Create a branch: `git checkout -b feature/your-feature-name`
+### Reporting Issues
 
-## How Can I Contribute?
+1. Check existing issues to avoid duplicates
+2. Use issue templates when available
+3. Include:
+   - Clear description of the problem
+   - Steps to reproduce
+   - Expected vs actual behavior
+   - System information (OS, shell, Rust version)
+   - Error messages or logs
 
-### 🐛 Reporting Bugs
+### Suggesting Features
 
-Before creating bug reports, please check existing issues. When creating a bug report, include:
+1. Check the roadmap and existing feature requests
+2. Describe the use case and benefits
+3. Consider implementation complexity
+4. Be open to discussion and alternatives
 
-- **Clear title and description**
-- **Steps to reproduce**
-- **Expected behavior**
-- **Actual behavior**
-- **System information** (OS, shell, Termbrain version)
-- **Relevant logs or error messages**
+### Submitting Changes
 
-### 💡 Suggesting Enhancements
+1. **Fork and Clone**
+   ```bash
+   git clone https://github.com/your-username/termbrain.git
+   cd termbrain
+   ```
 
-Enhancement suggestions are tracked as GitHub issues. When creating an enhancement suggestion, include:
+2. **Create a Branch**
+   ```bash
+   git checkout -b feature/your-feature-name
+   # or
+   git checkout -b fix/issue-description
+   ```
 
-- **Clear title and description**
-- **Use case** - Why is this enhancement useful?
-- **Possible implementation** - If you have ideas
-- **Alternatives considered**
+3. **Make Changes**
+   - Follow the coding standards
+   - Add tests for new functionality
+   - Update documentation as needed
+   - Keep commits focused and atomic
 
-### 🔧 Code Contributions
+4. **Test Your Changes**
+   ```bash
+   # Run all tests
+   cargo test --workspace
 
-#### Your First Code Contribution
+   # Run clippy
+   cargo clippy --workspace --all-targets
 
-Unsure where to begin? Look for these labels:
+   # Format code
+   cargo fmt --all
 
-- `good first issue` - Simple issues for beginners
-- `help wanted` - Issues where we need help
-- `documentation` - Documentation improvements
+   # Check for security issues
+   cargo audit
+   ```
 
-#### Development Process
-
-1. **Pick an issue** - Comment on it to claim it
-2. **Write code** - Follow our style guidelines
-3. **Write tests** - All features need tests
-4. **Update docs** - If you changed functionality
-5. **Submit PR** - Use our PR template
+5. **Submit Pull Request**
+   - Use a clear, descriptive title
+   - Reference related issues
+   - Describe what changes you made and why
+   - Include screenshots for UI changes
+   - Ensure CI passes
 
 ## Development Setup
 
 ### Prerequisites
 
-- Bash 4.0+ or Zsh 5.0+
-- SQLite 3
-- jq
-- git
-- (Optional) shellcheck, shfmt for linting
+- Rust 1.70+ (via [rustup](https://rustup.rs/))
+- SQLite 3.35+
+- Git
 
-### Setup
+### Building
 
 ```bash
-# Clone your fork
-git clone https://github.com/YOUR-USERNAME/termbrain.git
+# Clone the repository
+git clone https://github.com/anivar/termbrain.git
 cd termbrain
 
-# Install Termbrain locally
-./install.sh
+# Build debug version
+cargo build
+
+# Build release version
+cargo build --release
 
 # Run tests
-./tests/run_all_tests.sh
+cargo test --workspace
+
+# Run with debug logging
+RUST_LOG=debug cargo run -- search test
 ```
 
 ### Project Structure
 
 ```
 termbrain/
-├── src/                 # Core implementation
-│   ├── termbrain.sh    # Main script
-│   ├── termbrain-enhanced.sh
-│   └── termbrain-cognitive.sh
-├── lib/                 # Helper libraries
-├── tests/              # Test suite
-├── docs/               # Documentation
-└── providers/          # AI provider integrations
+├── crates/
+│   ├── termbrain-core/      # Domain logic
+│   ├── termbrain-storage/   # Database layer
+│   └── termbrain-cli/       # CLI interface
+├── shell-integration/       # Shell hooks
+├── migrations/             # Database migrations
+└── tests/                  # Integration tests
 ```
 
-## Style Guidelines
+## Coding Standards
 
-### Bash/Shell Script Style
+### Rust Guidelines
 
-We use [Google's Shell Style Guide](https://google.github.io/styleguide/shellguide.html) with these additions:
+1. **Follow Rust idioms**
+   - Use `Result<T, E>` for error handling
+   - Prefer `?` operator over `unwrap()`
+   - Use meaningful variable names
+   - Document public APIs
 
-```bash
-# Function names use :: separator
-tb::function_name() {
-    local var_name="value"  # Use local for function variables
-    
-    # Use [[ ]] for conditionals
-    if [[ -n "$var_name" ]]; then
-        echo "Do something"
-    fi
-}
+2. **Error Handling**
+   ```rust
+   // Good
+   let file = File::open(path)?;
+   
+   // Bad
+   let file = File::open(path).unwrap();
+   ```
 
-# Constants in UPPER_CASE
-readonly TERMBRAIN_VERSION="1.0.0"
+3. **Code Organization**
+   - Keep modules focused and cohesive
+   - Use the type system effectively
+   - Minimize `unsafe` code
+   - Add tests alongside implementation
 
-# Use meaningful variable names
-local semantic_type=$(tb::analyze_semantic "$cmd")
-```
+### Documentation
 
-### Commit Messages
+1. **Code Comments**
+   - Document "why" not "what"
+   - Use `///` for public API docs
+   - Include examples in doc comments
 
-Follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
+2. **Commit Messages**
+   - Use present tense ("Add feature" not "Added feature")
+   - Keep first line under 50 characters
+   - Reference issues: "Fix #123: Description"
+   - Use conventional commits when possible:
+     - `feat:` New features
+     - `fix:` Bug fixes
+     - `docs:` Documentation changes
+     - `test:` Test additions/changes
+     - `refactor:` Code refactoring
+     - `chore:` Maintenance tasks
 
-```
-feat: add mental model detection
-fix: correct SQL escaping in command capture
-docs: update installation instructions
-test: add cognitive layer tests
-refactor: simplify pattern detection logic
-```
+### Testing
 
-### Documentation Style
+1. **Unit Tests**
+   - Test edge cases
+   - Use descriptive test names
+   - Keep tests focused and independent
 
-- Use clear, concise language
-- Include code examples
-- Update relevant docs when changing features
-- Check spelling and grammar
+2. **Integration Tests**
+   - Test real workflows
+   - Verify shell integration
+   - Test error scenarios
 
-## Testing
+Example:
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-### Running Tests
-
-```bash
-# Run all tests
-./tests/run_all_tests.sh
-
-# Run specific test suite
-./tests/test_core.sh
-./tests/test_enhanced.sh
-./tests/test_cognitive.sh
-./tests/test_integration.sh
-
-# Quick sanity check
-./tests/quick_test.sh
-```
-
-### Writing Tests
-
-```bash
-test_my_feature() {
-    test_start "My feature test"
-    
-    # Arrange
-    local input="test data"
-    
-    # Act
-    local result=$(tb::my_function "$input")
-    
-    # Assert
-    assert_equals "$result" "expected" "My function returns expected value"
+    #[test]
+    fn test_command_validation_rejects_empty() {
+        let result = validate_command("");
+        assert!(result.is_err());
+    }
 }
 ```
-
-### Test Coverage
-
-All new features must include tests. Aim for:
-- Unit tests for individual functions
-- Integration tests for workflows
-- Edge case handling
 
 ## Pull Request Process
 
-1. **Update your fork**
-   ```bash
-   git fetch upstream
-   git rebase upstream/main
-   ```
-
-2. **Make your changes**
-   - Write clean, documented code
-   - Add tests for new functionality
+1. **Before Submitting**
+   - Rebase on latest main branch
+   - Ensure all tests pass
+   - Run formatter and linter
    - Update documentation
 
-3. **Test thoroughly**
-   ```bash
-   ./tests/run_all_tests.sh
-   shellcheck src/*.sh  # If you have shellcheck
-   ```
+2. **PR Guidelines**
+   - One feature/fix per PR
+   - Keep changes focused
+   - Respond to review feedback
+   - Be patient with the review process
 
-4. **Commit your changes**
-   ```bash
-   git add .
-   git commit -m "feat: your feature description"
-   ```
+3. **Review Process**
+   - At least one maintainer approval required
+   - CI must pass
+   - No merge conflicts
+   - Documentation updated
 
-5. **Push to your fork**
-   ```bash
-   git push origin feature/your-feature-name
-   ```
+## Architecture Decisions
 
-6. **Create Pull Request**
-   - Use the PR template
-   - Link related issues
-   - Describe your changes clearly
-   - Include screenshots if relevant
+When making significant changes:
 
-### PR Review Process
+1. Discuss in an issue first
+2. Consider backward compatibility
+3. Document design decisions
+4. Follow existing patterns
+5. Prioritize security and performance
 
-- PRs need at least one approval
-- All tests must pass
-- No merge conflicts
-- Follows style guidelines
-- Includes tests and docs
+## Release Process
 
-## Development Tips
+1. Update version in `Cargo.toml`
+2. Update `CHANGELOG.md`
+3. Create release PR
+4. Tag release after merge
+5. Publish to crates.io
 
-### Debugging
+## Getting Help
 
-```bash
-# Enable debug mode
-set -x  # Print commands as executed
-set -e  # Exit on error
+- Check documentation first
+- Ask in GitHub Discussions
+- Join our community chat (if available)
+- Tag maintainers for guidance
 
-# Add debug output
-tb::debug() {
-    [[ -n "$TERMBRAIN_DEBUG" ]] && echo "DEBUG: $*" >&2
-}
-```
+## Recognition
 
-### Performance
+Contributors are recognized in:
+- Release notes
+- README acknowledgments
+- GitHub contributors page
 
-- Use SQLite indexes for frequently queried columns
-- Batch database operations when possible
-- Run expensive operations asynchronously
-- Profile with `time` command
-
-### Security
-
-- Always escape SQL inputs with `tb::escape_sql`
-- Check paths before file operations
-- Never store passwords or secrets
-- Use `tb::is_safe_to_record` for sensitive commands
-
-## Community
-
-### Getting Help
-
-- 💬 [GitHub Discussions](https://github.com/anivar/termbrain/discussions) - General discussions
-- 🐛 [Issue Tracker](https://github.com/anivar/termbrain/issues) - Bug reports and features
-- 📧 Email: termbrain@example.com
-
-### Recognition
-
-Contributors will be:
-- Listed in our [Contributors](https://github.com/anivar/termbrain/graphs/contributors) page
-- Mentioned in release notes
-- Given credit in the changelog
-
-## License
-
-By contributing, you agree that your contributions will be licensed under the MIT License.
-
----
-
-Thank you for contributing to Termbrain! 🧠✨
+Thank you for contributing to TermBrain! 🧠
